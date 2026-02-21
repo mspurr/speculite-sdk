@@ -8,6 +8,19 @@ Official TypeScript SDK for Speculite market data and developer trading APIs.
 npm install @speculite/clob-client ethers viem
 ```
 
+## SDK Architecture
+
+The SDK is now split by concern so it is easier to maintain and extend:
+
+- `src/types.ts`: public types and enums
+- `src/errors.ts`: API error types
+- `src/internal/*`: reusable constants and pure helpers
+- `src/client/baseClient.ts`: transport/auth/signing shared logic
+- `src/client/publicClient.ts`: public + developer REST methods
+- `src/client/tradingClient.ts`: order creation/signing flow
+- `src/client/lifecycleClient.ts`: on-chain lifecycle transaction helpers
+- `src/speculiteClobClient.ts`: public facade class + re-exports
+
 ## Quickstart
 
 ```ts

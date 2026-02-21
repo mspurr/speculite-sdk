@@ -1,0 +1,373 @@
+import type { Address, Hex, PublicClient, WalletClient } from 'viem';
+
+export const Side = {
+  BUY: 'BUY',
+  SELL: 'SELL'
+} as const;
+
+export const OrderType = {
+  LIMIT: 'LIMIT',
+  MARKET: 'MARKET'
+} as const;
+
+export type OrderSide = typeof Side[keyof typeof Side];
+export type OrderTypeValue = typeof OrderType[keyof typeof OrderType];
+export type Outcome = 'YES' | 'NO';
+
+export interface ApiCredentials {
+  apiKey: string;
+  apiSecret: string;
+}
+
+export interface CreateOrderArgs {
+  marketId: string;
+  outcome: Outcome;
+  side: OrderSide;
+  price: number | string;
+  size: number | string;
+  nonce?: number | string | bigint;
+  expiry?: number;
+  orderType?: OrderTypeValue;
+  maxSlippage?: number | string;
+  maker?: string;
+}
+
+export interface MarketSigningInfo {
+  marketId: string;
+  exchangeAddress: string;
+  marketIdOnchain: number;
+  takerFeeBps: number;
+}
+
+export interface Market {
+  market_id: string;
+  exchange_address?: string | null;
+  market_id_onchain?: number | string | null;
+  taker_fee_bps?: number | string | null;
+  pyth_feed_id?: string | null;
+  expiration_timestamp?: string | number | null;
+  [key: string]: unknown;
+}
+
+export interface MarketsResponse {
+  success: boolean;
+  markets: Market[];
+  pagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
+}
+
+export interface MarketResponse {
+  success: boolean;
+  market: Market;
+}
+
+export interface MarketDataResponse {
+  market_id: string;
+  midpoint_price: string | null;
+  best_bid: string | null;
+  best_ask: string | null;
+  spread: string | null;
+  timestamp?: string;
+}
+
+export interface MarketDataBatchResponse {
+  success: boolean;
+  data: MarketDataResponse[];
+}
+
+export interface OrderbookLevel {
+  price: string;
+  size?: string;
+  token_id?: number;
+  tokenId?: number;
+  [key: string]: unknown;
+}
+
+export interface OrderbookResponse {
+  market_id?: string;
+  bids: OrderbookLevel[];
+  asks: OrderbookLevel[];
+  last_price?: string | null;
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+export interface DeveloperApiKey {
+  api_key_id: string;
+  key_prefix: string;
+  label: string | null;
+  scopes: string[];
+  status: 'ACTIVE' | 'REVOKED';
+  ip_allowlist: string[];
+  expires_at: string | null;
+  last_used_at: string | null;
+  last_used_ip: string | null;
+  created_at: string;
+}
+
+export interface DeveloperApiKeysResponse {
+  success: boolean;
+  keys: DeveloperApiKey[];
+}
+
+export interface DeveloperApiKeyRevokeResponse {
+  success: boolean;
+  api_key_id: string;
+  status: 'REVOKED';
+}
+
+export interface DeveloperWalletActivity {
+  wallet_address: string;
+  first_seen_at: string;
+  last_seen_at: string;
+  order_count: number;
+  traded_volume_usdc: string;
+}
+
+export interface DeveloperWalletActivityResponse {
+  success: boolean;
+  wallets: DeveloperWalletActivity[];
+}
+
+export interface DeveloperAuthMeResponse {
+  success: boolean;
+  principal: {
+    user_id: string;
+    api_key_id: string;
+    scopes: string[];
+  };
+}
+
+export interface DeveloperOpenOrder {
+  order_id: string;
+  market_id: string;
+  side: OrderSide;
+  token_id: number;
+  type: OrderTypeValue;
+  price: string;
+  size: string;
+  filled_size: string;
+  status: string;
+  client_order_id: string;
+  created_at: string;
+}
+
+export interface DeveloperOpenOrdersResponse {
+  success: boolean;
+  orders: DeveloperOpenOrder[];
+}
+
+export interface DeveloperPagination {
+  limit: number;
+  offset: number;
+  has_more: boolean;
+}
+
+export interface DeveloperOrderHistoryEntry extends DeveloperOpenOrder {
+  outcome: Outcome;
+  cancellation_reason?: string | null;
+  cancelled_at?: string | null;
+  updated_at?: string;
+}
+
+export interface DeveloperOrderHistoryResponse {
+  success: boolean;
+  orders: DeveloperOrderHistoryEntry[];
+  pagination: DeveloperPagination;
+}
+
+export interface DeveloperTradeFill {
+  trade_id: string;
+  market_id: string;
+  maker_order_id: string;
+  taker_order_id: string;
+  role: 'MAKER' | 'TAKER';
+  side: OrderSide;
+  token_id: number;
+  outcome: Outcome;
+  price: string;
+  size: string;
+  client_order_id: string | null;
+  settlement_status: string;
+  transaction_hash: string | null;
+  user_operation_hash: string | null;
+  matched_at: string;
+}
+
+export interface DeveloperTradesResponse {
+  success: boolean;
+  trades: DeveloperTradeFill[];
+  pagination: DeveloperPagination;
+}
+
+export interface DeveloperPosition {
+  position_id: string;
+  market_id: string;
+  market_name: string | null;
+  title: string | null;
+  question: string | null;
+  underlying_symbol: string | null;
+  expiration_timestamp: string;
+  market_status: string;
+  winning_outcome: number | null;
+  token_id: number;
+  outcome: Outcome;
+  quantity: string;
+  average_entry_price: string;
+  position_status: string;
+  updated_at: string;
+}
+
+export interface DeveloperPositionsResponse {
+  success: boolean;
+  positions: DeveloperPosition[];
+  pagination: DeveloperPagination;
+}
+
+export interface DeveloperListParams {
+  marketId?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface DeveloperPositionsParams extends DeveloperListParams {
+  includeClosed?: boolean;
+}
+
+export interface DeveloperOrderAcceptedResponse {
+  success: boolean;
+  lifecycle_status: 'ACCEPTED';
+  order_id: string;
+  client_order_id: string;
+  market_id: string;
+  side: OrderSide;
+  outcome: Outcome;
+  price: string;
+  size: string;
+  accepted_at: string;
+}
+
+export interface DeveloperCancelOrderResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface DeveloperResolveMarketResponse {
+  success: boolean;
+  market_id: string;
+  resolutionTransactionHash: string;
+  resolutionData: {
+    resolutionPrice: string;
+    winningTokenId: number;
+    winningOutcome?: string;
+  } | null;
+  message: string;
+}
+
+export interface DeveloperOrderRequest {
+  market_id: string;
+  maker: string;
+  outcome: Outcome;
+  side: OrderSide;
+  price: string;
+  size: string;
+  nonce: string;
+  expiry: number;
+  signature: string;
+  order_type?: OrderTypeValue;
+  max_slippage?: string;
+}
+
+export interface SignerLike {
+  address?: string;
+  account?: { address?: string };
+  getAddress?: () => Promise<string> | string;
+  signTypedData: (...args: any[]) => Promise<string>;
+}
+
+export interface PreparedOnchainTransaction {
+  to: Address;
+  data: Hex;
+  value?: bigint;
+  chainId: number;
+  kind: 'approve_usdc' | 'mint' | 'merge' | 'claim' | 'resolve';
+}
+
+export interface PreparedResolveTransaction extends PreparedOnchainTransaction {
+  kind: 'resolve';
+  updateData: Hex[];
+  updateFeeWei: bigint;
+  marketIdOnchain: number;
+}
+
+export interface OnchainMarketInfo {
+  marketId: string;
+  marketIdOnchain: number;
+  exchangeAddress: Address;
+  pythFeedId?: Hex | null;
+  expiryTimestamp?: number | null;
+}
+
+export interface PrepareApproveUsdcArgs {
+  spender: Address;
+  amount: number | string;
+  usdcAddress: Address;
+}
+
+export interface PrepareMintArgs {
+  marketId: string;
+  amount: number | string;
+  market?: Partial<OnchainMarketInfo>;
+}
+
+export interface PrepareMergeArgs {
+  marketId: string;
+  pairs: number | string;
+  holder: Address;
+  market?: Partial<OnchainMarketInfo>;
+}
+
+export interface PrepareClaimArgs {
+  marketId: string;
+  market?: Partial<OnchainMarketInfo>;
+}
+
+export interface PrepareResolveArgs {
+  marketId: string;
+  market?: Partial<OnchainMarketInfo>;
+  pythAddress?: Address;
+  rpcUrl?: string;
+  pythPriceServiceUrl?: string;
+  allowLatestFallback?: boolean;
+}
+
+export interface OnchainExecutionResult<T extends PreparedOnchainTransaction> {
+  hash: Hex;
+  tx: T;
+}
+
+export interface RuntimeOptions {
+  fetch?: typeof fetch;
+  now?: () => number;
+  publicClient?: PublicClient;
+  walletClient?: WalletClient;
+  rpcUrl?: string;
+  pythAddress?: Address;
+  pythPriceServiceUrl?: string;
+}
+
+export interface RequestOptions {
+  query?: Record<string, string | number | boolean | null | undefined>;
+  body?: unknown;
+  headers?: HeadersInit;
+  auth?: 'none' | 'bearer' | 'developer';
+  authToken?: string;
+}
+
+export interface JsonObject {
+  [key: string]: unknown;
+}
