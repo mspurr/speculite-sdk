@@ -38,11 +38,14 @@
     "LICENSE"
   ],
   "sideEffects": false,
+  "dependencies": {
+    "viem": "^2.38.4"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "test": "jest",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config jest.config.cjs",
     "prepublishOnly": "npm run clean && npm run type-check && npm run test && npm run build"
   },
   "devDependencies": {

@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import { jest } from '@jest/globals';
+import { encodeFunctionData, parseUnits } from 'viem';
 import {
   OrderType,
   Side,
@@ -11,6 +13,17 @@ const API_CREDS: ApiCredentials = {
   apiKey: 'spec_test_key_123',
   apiSecret: 'spec_test_secret_abc'
 };
+
+const EXCHANGE_MINT_ABI = [{
+  inputs: [
+    { internalType: 'uint256', name: 'marketId', type: 'uint256' },
+    { internalType: 'uint256', name: 'amount', type: 'uint256' }
+  ],
+  name: 'mint',
+  outputs: [],
+  stateMutability: 'nonpayable',
+  type: 'function'
+}] as const;
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -288,5 +301,175 @@ describe('SpeculiteClobClient', () => {
       'https://api.speculite.com/api/developer/positions?market_id=market-1&include_closed=true&limit=100&offset=0',
       expect.objectContaining({ method: 'GET' })
     );
+  });
+
+  it('resolves expired market through developer API credentials', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        market_id: 'market-1',
+        resolutionTransactionHash: '0xresolvehash',
+        resolutionData: {
+          resolutionPrice: '55000000',
+          winningTokenId: 0,
+          winningOutcome: 'YES'
+        },
+        message: 'Market resolved successfully'
+      })
+    );
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      0,
+      undefined,
+      { fetch: fetchMock as unknown as typeof fetch, now: () => 1_700_000_000_000 }
+    );
+
+    const response = await client.resolveExpiredMarket('market-1');
+
+    expect(response.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.speculite.com/api/developer/markets/market-1/resolve',
+      expect.objectContaining({ method: 'POST' })
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = new Headers(init.headers);
+    expect(headers.get('speculite-api-key')).toBe(API_CREDS.apiKey);
+    expect(headers.get('speculite-signature')).toBeTruthy();
+  });
+
+  it('prepares mint transaction payload from market metadata', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        market: {
+          market_id: 'market-1',
+          exchange_address: '0x1111111111111111111111111111111111111111',
+          market_id_onchain: 77,
+          taker_fee_bps: 80
+        }
+      })
+    );
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      0,
+      undefined,
+      { fetch: fetchMock as unknown as typeof fetch, now: () => 1_700_000_000_000 }
+    );
+
+    const tx = await client.prepareMintTx({
+      marketId: 'market-1',
+      amount: '2.5'
+    });
+
+    expect(tx.kind).toBe('mint');
+    expect(tx.to).toBe('0x1111111111111111111111111111111111111111');
+    expect(tx.chainId).toBe(10143);
+    expect(tx.value).toBeUndefined();
+    expect(tx.data).toBe(encodeFunctionData({
+      abi: EXCHANGE_MINT_ABI,
+      functionName: 'mint',
+      args: [77n, parseUnits('2.5', 6)]
+    }));
+  });
+
+  it('prepares resolve transaction payload with pyth fee buffer', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          market: {
+            market_id: 'market-1',
+            exchange_address: '0x1111111111111111111111111111111111111111',
+            market_id_onchain: 77,
+            pyth_feed_id: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+            expiration_timestamp: '2026-02-21T00:00:00.000Z'
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          binary: {
+            data: [
+              '0x1234abcd'
+            ]
+          }
+        })
+      );
+
+    const publicClient = {
+      readContract: jest.fn().mockResolvedValue(12_345n)
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      0,
+      undefined,
+      {
+        fetch: fetchMock as unknown as typeof fetch,
+        publicClient
+      }
+    );
+
+    const tx = await client.prepareResolveTx({
+      marketId: 'market-1',
+      pythAddress: '0x2222222222222222222222222222222222222222'
+    });
+
+    expect(tx.kind).toBe('resolve');
+    expect(tx.to).toBe('0x1111111111111111111111111111111111111111');
+    expect(tx.updateData).toEqual(['0x1234abcd']);
+    expect(tx.updateFeeWei).toBe(13_345n);
+    expect(tx.value).toBe(13_345n);
+    expect(publicClient.readContract).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends prepared transaction through configured wallet client', async () => {
+    const walletClient = {
+      account: {
+        address: '0x3333333333333333333333333333333333333333'
+      },
+      sendTransaction: jest.fn().mockResolvedValue('0xabc123')
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      0,
+      undefined,
+      { walletClient }
+    );
+
+    const hash = await client.sendPreparedTransaction({
+      to: '0x1111111111111111111111111111111111111111',
+      data: '0x1234',
+      value: 9n,
+      chainId: 10143,
+      kind: 'claim'
+    });
+
+    expect(hash).toBe('0xabc123');
+    expect(walletClient.sendTransaction).toHaveBeenCalledWith({
+      account: '0x3333333333333333333333333333333333333333',
+      to: '0x1111111111111111111111111111111111111111',
+      data: '0x1234',
+      value: 9n,
+      chain: null
+    });
   });
 });
