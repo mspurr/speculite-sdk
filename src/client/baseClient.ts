@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { createPublicClient, http, type Address, type Hex, type PublicClient, type WalletClient } from 'viem';
+import { createPublicClient, http, type Account, type Address, type Hex, type PublicClient, type WalletClient } from 'viem';
 import { SpeculiteApiError } from '../errors.js';
 import {
   DEFAULT_PYTH_PRICE_SERVICE_URL,
@@ -167,10 +167,10 @@ export abstract class BaseClient {
    */
   protected async resolveWalletAccount(
     walletClient: WalletClient,
-    account?: Address
-  ): Promise<Address> {
+    account?: Address | Account
+  ): Promise<Address | Account> {
     if (account) return account;
-    if (walletClient.account?.address) return walletClient.account.address as Address;
+    if (walletClient.account) return walletClient.account;
     if (typeof walletClient.getAddresses === 'function') {
       const addresses = await walletClient.getAddresses();
       if (addresses.length > 0) return addresses[0] as Address;

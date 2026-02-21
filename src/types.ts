@@ -1,4 +1,4 @@
-import type { Address, Hex, PublicClient, WalletClient } from 'viem';
+import type { Account, Address, Hex, PublicClient, WalletClient } from 'viem';
 
 /** Trade side used by order creation and order/trade responses. */
 export const Side = {
@@ -315,6 +315,9 @@ export interface PreparedResolveTransaction extends PreparedOnchainTransaction {
   updateFeeWei: bigint;
   marketIdOnchain: number;
 }
+
+/** Account accepted by lifecycle tx senders (local account preferred). */
+export type OnchainExecutionAccount = Account | Address;
 
 /** On-chain metadata required to build lifecycle transactions. */
 export interface OnchainMarketInfo {

@@ -11,6 +11,7 @@ import {
 import { normalizeAddress, toPositiveDecimalString } from '../internal/utils.js';
 import type {
   OnchainExecutionResult,
+  OnchainExecutionAccount,
   PrepareApproveUsdcArgs,
   PrepareClaimArgs,
   PrepareMergeArgs,
@@ -161,7 +162,7 @@ export class LifecycleClient extends TradingClient {
   /** Sends a prepared transaction via configured wallet client. */
   async sendPreparedTransaction(
     tx: PreparedOnchainTransaction,
-    account?: Address
+    account?: OnchainExecutionAccount
   ): Promise<Hex> {
     const walletClient = this.requireWalletClient();
     const fromAccount = await this.resolveWalletAccount(walletClient, account);
@@ -177,7 +178,7 @@ export class LifecycleClient extends TradingClient {
 
   /** Prepares + sends approve tx. */
   async approveUsdc(
-    args: PrepareApproveUsdcArgs & { account?: Address }
+    args: PrepareApproveUsdcArgs & { account?: OnchainExecutionAccount }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
     const tx = await this.prepareApproveUsdcTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);
@@ -186,7 +187,7 @@ export class LifecycleClient extends TradingClient {
 
   /** Prepares + sends mint tx. */
   async mintTokens(
-    args: PrepareMintArgs & { account?: Address }
+    args: PrepareMintArgs & { account?: OnchainExecutionAccount }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
     const tx = await this.prepareMintTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);
@@ -195,7 +196,7 @@ export class LifecycleClient extends TradingClient {
 
   /** Prepares + sends merge tx. */
   async mergeTokens(
-    args: PrepareMergeArgs & { account?: Address }
+    args: PrepareMergeArgs & { account?: OnchainExecutionAccount }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
     const tx = await this.prepareMergeTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);
@@ -204,7 +205,7 @@ export class LifecycleClient extends TradingClient {
 
   /** Prepares + sends claim tx. */
   async claimWinnings(
-    args: PrepareClaimArgs & { account?: Address }
+    args: PrepareClaimArgs & { account?: OnchainExecutionAccount }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
     const tx = await this.prepareClaimTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);
@@ -213,7 +214,7 @@ export class LifecycleClient extends TradingClient {
 
   /** Prepares + sends resolve tx. */
   async resolveMarket(
-    args: PrepareResolveArgs & { account?: Address }
+    args: PrepareResolveArgs & { account?: OnchainExecutionAccount }
   ): Promise<OnchainExecutionResult<PreparedResolveTransaction>> {
     const tx = await this.prepareResolveTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);

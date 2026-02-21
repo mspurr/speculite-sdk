@@ -560,10 +560,11 @@ describe('SpeculiteClobClient', () => {
   });
 
   it('sends prepared transaction through configured wallet client', async () => {
+    const localAccount = {
+      address: '0x3333333333333333333333333333333333333333'
+    } as any;
     const walletClient = {
-      account: {
-        address: '0x3333333333333333333333333333333333333333'
-      },
+      account: localAccount,
       sendTransaction: jest.fn().mockResolvedValue('0xabc123')
     } as any;
 
@@ -587,7 +588,7 @@ describe('SpeculiteClobClient', () => {
 
     expect(hash).toBe('0xabc123');
     expect(walletClient.sendTransaction).toHaveBeenCalledWith({
-      account: '0x3333333333333333333333333333333333333333',
+      account: localAccount,
       to: '0x1111111111111111111111111111111111111111',
       data: '0x1234',
       value: 9n,
