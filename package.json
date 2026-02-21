@@ -1,0 +1,55 @@
+{
+  "name": "@speculite/clob-client",
+  "version": "0.1.0",
+  "description": "Official TypeScript SDK for Speculite CLOB and developer trading APIs",
+  "type": "module",
+  "license": "MIT",
+  "author": "Speculite",
+  "homepage": "https://docs.speculite.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mspurr/speculite-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mspurr/speculite-sdk/issues"
+  },
+  "keywords": [
+    "speculite",
+    "prediction-market",
+    "clob",
+    "orderbook",
+    "trading-sdk"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "test": "jest",
+    "prepublishOnly": "npm run clean && npm run type-check && npm run test && npm run build"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@types/node": "^20.17.46",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  }
+}
