@@ -340,6 +340,22 @@ export interface PrepareMintArgs {
   market?: Partial<OnchainMarketInfo>;
 }
 
+export interface MintFundingStatusArgs extends PrepareMintArgs {
+  account?: OnchainExecutionAccount;
+  rpcUrl?: string;
+}
+
+export interface MintFundingStatus {
+  owner: Address;
+  exchangeAddress: Address;
+  usdcAddress: Address;
+  requiredAmount: bigint;
+  allowance: bigint;
+  balance: bigint;
+  hasSufficientAllowance: boolean;
+  hasSufficientBalance: boolean;
+}
+
 export interface PrepareMergeArgs {
   marketId: string;
   pairs: number | string;

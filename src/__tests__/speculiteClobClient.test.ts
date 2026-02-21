@@ -596,6 +596,103 @@ describe('SpeculiteClobClient', () => {
     });
   });
 
+  it('reads mint funding status (required/balance/allowance)', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        market: {
+          market_id: 'market-1',
+          exchange_address: '0x1111111111111111111111111111111111111111',
+          market_id_onchain: 77
+        }
+      })
+    );
+    const walletClient = {
+      account: { address: '0x3333333333333333333333333333333333333333' }
+    } as any;
+    const publicClient = {
+      readContract: jest
+        .fn()
+        .mockResolvedValueOnce('0x4444444444444444444444444444444444444444')
+        .mockResolvedValueOnce(parseUnits('10', 6))
+        .mockResolvedValueOnce(parseUnits('5', 6))
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      {
+        fetch: fetchMock as unknown as typeof fetch,
+        walletClient,
+        publicClient
+      }
+    );
+
+    const funding = await client.getMintFundingStatus({
+      marketId: 'market-1',
+      amount: '25'
+    });
+
+    expect(funding).toEqual({
+      owner: '0x3333333333333333333333333333333333333333',
+      exchangeAddress: '0x1111111111111111111111111111111111111111',
+      usdcAddress: '0x4444444444444444444444444444444444444444',
+      requiredAmount: parseUnits('25', 6),
+      allowance: parseUnits('10', 6),
+      balance: parseUnits('5', 6),
+      hasSufficientAllowance: false,
+      hasSufficientBalance: false
+    });
+    expect(publicClient.readContract).toHaveBeenCalledTimes(3);
+  });
+
+  it('enriches mint underflow errors with funding diagnostics', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        market: {
+          market_id: 'market-1',
+          exchange_address: '0x1111111111111111111111111111111111111111',
+          market_id_onchain: 77
+        }
+      })
+    );
+    const walletClient = {
+      account: { address: '0x3333333333333333333333333333333333333333' },
+      sendTransaction: jest.fn().mockRejectedValue(
+        new Error('execution reverted: arithmetic underflow or overflow (0x11)')
+      )
+    } as any;
+    const publicClient = {
+      readContract: jest
+        .fn()
+        .mockResolvedValueOnce('0x4444444444444444444444444444444444444444')
+        .mockResolvedValueOnce(0n)
+        .mockResolvedValueOnce(parseUnits('1', 6))
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      {
+        fetch: fetchMock as unknown as typeof fetch,
+        walletClient,
+        publicClient
+      }
+    );
+
+    await expect(client.mintTokens({
+      marketId: 'market-1',
+      amount: '25'
+    })).rejects.toThrow(
+      'Mint funding check: allowance 0 < required 25; balance 1 < required 25.'
+    );
+  });
+
   it('derives wallet account from signer when wallet client has no account', async () => {
     const signer: SignerLike = {
       address: '0x9999999999999999999999999999999999999999',

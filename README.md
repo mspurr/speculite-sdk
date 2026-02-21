@@ -76,6 +76,7 @@ console.log(order.order_id, order.lifecycle_status);
 - `prepareMergeTx({ marketId, pairs, holder })`
 - `prepareClaimTx({ marketId })`
 - `prepareResolveTx({ marketId, pythAddress, rpcUrl? })`
+- `getMintFundingStatus({ marketId, amount, account?, rpcUrl? })`
 - `sendPreparedTransaction(tx, account?)`
 - `approveUsdc(...)`
 - `mintTokens(...)`
@@ -128,6 +129,18 @@ const client = new SpeculiteClobClient(
     pythAddress: process.env.PYTH_ADDRESS as `0x${string}`
   }
 );
+
+const funding = await client.getMintFundingStatus({
+  marketId: 'MARKET_UUID',
+  amount: '25'
+});
+if (!funding.hasSufficientAllowance) {
+  await client.approveUsdc({
+    spender: funding.exchangeAddress,
+    usdcAddress: funding.usdcAddress,
+    amount: '25'
+  });
+}
 
 const mint = await client.mintTokens({
   marketId: 'MARKET_UUID',
