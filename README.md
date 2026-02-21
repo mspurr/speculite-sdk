@@ -39,9 +39,7 @@ const client = new SpeculiteClobClient(
   {
     apiKey: process.env.SPECULITE_API_KEY!,
     apiSecret: process.env.SPECULITE_API_SECRET!
-  },
-  0,
-  signer.address
+  }
 );
 
 const markets = await client.getMarkets({ statusFilter: 'active', limit: 1 });
@@ -135,8 +133,6 @@ const client = new SpeculiteClobClient(
     apiKey: process.env.SPECULITE_API_KEY!,
     apiSecret: process.env.SPECULITE_API_SECRET!
   },
-  0,
-  account.address,
   {
     walletClient,
     rpcUrl: RPC_URL,
@@ -146,14 +142,12 @@ const client = new SpeculiteClobClient(
 
 const mint = await client.mintTokens({
   marketId: 'MARKET_UUID',
-  amount: '25',
-  account: account.address
+  amount: '25'
 });
 console.log('mint tx:', mint.hash);
 
 const claim = await client.claimWinnings({
-  marketId: 'MARKET_UUID',
-  account: account.address
+  marketId: 'MARKET_UUID'
 });
 console.log('claim tx:', claim.hash);
 ```

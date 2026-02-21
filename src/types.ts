@@ -360,6 +360,11 @@ export interface RuntimeOptions {
   pythPriceServiceUrl?: string;
 }
 
+export interface ClientConstructorOptions extends RuntimeOptions {
+  signatureType?: number;
+  funderAddress?: string;
+}
+
 export interface RequestOptions {
   query?: Record<string, string | number | boolean | null | undefined>;
   body?: unknown;

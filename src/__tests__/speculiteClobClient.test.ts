@@ -248,6 +248,40 @@ describe('SpeculiteClobClient', () => {
     expect((viemLikeSigner.signTypedData as jest.Mock).mock.calls.length).toBe(1);
   });
 
+  it('derives maker address without explicit funder/signature args in constructor', async () => {
+    const signer: SignerLike = {
+      getAddress: async () => '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      signTypedData: jest.fn().mockResolvedValue('0xdeadbeef')
+    };
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      signer,
+      API_CREDS
+    );
+
+    const order = await client.createOrder(
+      {
+        marketId: 'market-2',
+        outcome: 'YES',
+        side: Side.BUY,
+        price: 0.42,
+        size: 5,
+        nonce: '1001',
+        expiry: 1_800_000_000
+      },
+      {
+        marketId: 'market-2',
+        exchangeAddress: '0x4444444444444444444444444444444444444444',
+        marketIdOnchain: 88,
+        takerFeeBps: 80
+      }
+    );
+
+    expect(order.maker).toBe('0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+  });
+
   it('fetches developer order history, trades, and positions with typed query params', async () => {
     const fetchMock = jest.fn()
       .mockResolvedValueOnce(
@@ -469,6 +503,42 @@ describe('SpeculiteClobClient', () => {
       to: '0x1111111111111111111111111111111111111111',
       data: '0x1234',
       value: 9n,
+      chain: null
+    });
+  });
+
+  it('derives wallet account from signer when wallet client has no account', async () => {
+    const signer: SignerLike = {
+      address: '0x9999999999999999999999999999999999999999',
+      signTypedData: jest.fn().mockResolvedValue('0xdeadbeef')
+    };
+    const walletClient = {
+      sendTransaction: jest.fn().mockResolvedValue('0xfeed123')
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      signer,
+      API_CREDS,
+      {
+        walletClient
+      }
+    );
+
+    await client.sendPreparedTransaction({
+      to: '0x1111111111111111111111111111111111111111',
+      data: '0x1234',
+      value: 1n,
+      chainId: 10143,
+      kind: 'claim'
+    });
+
+    expect(walletClient.sendTransaction).toHaveBeenCalledWith({
+      account: '0x9999999999999999999999999999999999999999',
+      to: '0x1111111111111111111111111111111111111111',
+      data: '0x1234',
+      value: 1n,
       chain: null
     });
   });

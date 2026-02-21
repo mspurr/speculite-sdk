@@ -15,6 +15,7 @@ import {
 } from '../internal/utils.js';
 import type {
   ApiCredentials,
+  ClientConstructorOptions,
   Market,
   MarketResponse,
   MarketSigningInfo,
@@ -48,23 +49,43 @@ export abstract class BaseClient {
     chainId: number,
     signer?: SignerLike,
     credentials?: ApiCredentials,
-    signatureType = 0,
+    signatureTypeOrOptions: number | ClientConstructorOptions = 0,
     funderAddress?: string,
     runtimeOptions: RuntimeOptions = {}
   ) {
+    let signatureType = 0;
+    let resolvedFunderAddress = funderAddress;
+    let resolvedRuntimeOptions: RuntimeOptions = runtimeOptions;
+
+    if (typeof signatureTypeOrOptions === 'number') {
+      signatureType = signatureTypeOrOptions;
+    } else {
+      const {
+        signatureType: optionsSignatureType = 0,
+        funderAddress: optionsFunderAddress,
+        ...runtimeFromOptions
+      } = signatureTypeOrOptions;
+      signatureType = optionsSignatureType;
+      resolvedFunderAddress = optionsFunderAddress ?? funderAddress;
+      resolvedRuntimeOptions = {
+        ...runtimeFromOptions,
+        ...runtimeOptions
+      };
+    }
+
     this.host = normalizeHost(host);
     this.chainId = chainId;
     this.signer = signer;
     this.credentials = credentials;
     this.signatureType = signatureType;
-    this.funderAddress = funderAddress;
-    this.fetchImpl = runtimeOptions.fetch || fetch;
-    this.now = runtimeOptions.now || (() => Date.now());
-    this.publicClient = runtimeOptions.publicClient;
-    this.walletClient = runtimeOptions.walletClient;
-    this.rpcUrl = runtimeOptions.rpcUrl;
-    this.defaultPythAddress = runtimeOptions.pythAddress;
-    this.pythPriceServiceUrl = runtimeOptions.pythPriceServiceUrl || DEFAULT_PYTH_PRICE_SERVICE_URL;
+    this.funderAddress = resolvedFunderAddress;
+    this.fetchImpl = resolvedRuntimeOptions.fetch || fetch;
+    this.now = resolvedRuntimeOptions.now || (() => Date.now());
+    this.publicClient = resolvedRuntimeOptions.publicClient;
+    this.walletClient = resolvedRuntimeOptions.walletClient;
+    this.rpcUrl = resolvedRuntimeOptions.rpcUrl;
+    this.defaultPythAddress = resolvedRuntimeOptions.pythAddress;
+    this.pythPriceServiceUrl = resolvedRuntimeOptions.pythPriceServiceUrl || DEFAULT_PYTH_PRICE_SERVICE_URL;
   }
 
   getSignatureType(): number {
@@ -122,7 +143,11 @@ export abstract class BaseClient {
       const addresses = await walletClient.getAddresses();
       if (addresses.length > 0) return addresses[0] as Address;
     }
-    throw new Error('No wallet account available; pass account explicitly');
+    try {
+      return normalizeAddress(await this.resolveMakerAddress(), 'signer.address');
+    } catch {
+      throw new Error('No wallet account available; pass account explicitly or provide signer/funderAddress');
+    }
   }
 
   protected resolvePublicClient(overrideRpcUrl?: string): PublicClient {
