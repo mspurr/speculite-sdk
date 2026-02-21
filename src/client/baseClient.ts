@@ -25,6 +25,15 @@ import type {
   SignerLike,
 } from '../types.js';
 
+/**
+ * Shared SDK core:
+ * - request transport + auth header signing
+ * - signer/wallet resolution helpers
+ * - market metadata normalization
+ * - typed-data signing primitives
+ *
+ * Feature-specific APIs are implemented in subclasses.
+ */
 export abstract class BaseClient {
   protected readonly host: string;
   protected readonly chainId: number;
@@ -44,6 +53,11 @@ export abstract class BaseClient {
 
   protected abstract getMarket(marketId: string): Promise<MarketResponse>;
 
+  /**
+   * Creates a client with backward-compatible constructor forms:
+   * - legacy positional: `(host, chainId, signer, creds, signatureType?, funderAddress?, runtimeOptions?)`
+   * - preferred options: `(host, chainId, signer, creds, { signatureType?, funderAddress?, ...runtimeOptions })`
+   */
   constructor(
     host: string,
     chainId: number,
@@ -88,27 +102,35 @@ export abstract class BaseClient {
     this.pythPriceServiceUrl = resolvedRuntimeOptions.pythPriceServiceUrl || DEFAULT_PYTH_PRICE_SERVICE_URL;
   }
 
+  /** Signature strategy identifier used by upstream systems. */
   getSignatureType(): number {
     return this.signatureType;
   }
 
+  /**
+   * Replaces signer and optional funder address at runtime.
+   */
   setSigner(signer: SignerLike, funderAddress?: string): void {
     this.signer = signer;
     if (funderAddress) this.funderAddress = funderAddress;
   }
 
+  /** Replaces developer API credentials used for HMAC-auth endpoints. */
   setApiCredentials(credentials: ApiCredentials): void {
     this.credentials = credentials;
   }
 
+  /** Replaces wallet client used for on-chain transaction submission. */
   setWalletClient(walletClient: WalletClient): void {
     this.walletClient = walletClient;
   }
 
+  /** Returns currently configured developer API credentials, if set. */
   getApiCredentials(): ApiCredentials | null {
     return this.credentials || null;
   }
 
+  /** Ensures signer exists and can sign typed data. */
   protected requireSigner(): SignerLike {
     if (!this.signer) {
       throw new Error('A signer is required for order creation');
@@ -119,6 +141,7 @@ export abstract class BaseClient {
     return this.signer;
   }
 
+  /** Ensures developer API credentials are configured. */
   protected requireCredentials(): ApiCredentials {
     if (!this.credentials) {
       throw new Error('Developer API credentials are required');
@@ -126,6 +149,7 @@ export abstract class BaseClient {
     return this.credentials;
   }
 
+  /** Ensures wallet client is configured for on-chain tx sending. */
   protected requireWalletClient(): WalletClient {
     if (!this.walletClient) {
       throw new Error('walletClient is required for on-chain transaction execution');
@@ -133,6 +157,14 @@ export abstract class BaseClient {
     return this.walletClient;
   }
 
+  /**
+   * Resolves sender address for on-chain txs.
+   *
+   * Resolution order:
+   * 1. explicit `account` argument
+   * 2. wallet client's default account / first address
+   * 3. signer/funder-derived address
+   */
   protected async resolveWalletAccount(
     walletClient: WalletClient,
     account?: Address
@@ -150,6 +182,7 @@ export abstract class BaseClient {
     }
   }
 
+  /** Returns explicit public client or builds one from RPC URL. */
   protected resolvePublicClient(overrideRpcUrl?: string): PublicClient {
     if (this.publicClient) return this.publicClient;
     const rpcUrl = overrideRpcUrl || this.rpcUrl;
@@ -159,6 +192,7 @@ export abstract class BaseClient {
     return createPublicClient({ transport: http(rpcUrl) });
   }
 
+  /** Converts API market payload into normalized on-chain metadata. */
   protected mapMarketToOnchainInfo(
     marketId: string,
     market: Market
@@ -178,6 +212,9 @@ export abstract class BaseClient {
     };
   }
 
+  /**
+   * Resolves required on-chain market metadata from override or API lookup.
+   */
   protected async resolveOnchainMarketInfo(
     marketId: string,
     override?: Partial<OnchainMarketInfo>
@@ -205,6 +242,10 @@ export abstract class BaseClient {
     };
   }
 
+  /**
+   * Fetches Pyth update payload(s) for market expiry.
+   * Falls back to latest endpoint when allowed.
+   */
   protected async fetchPythUpdateData(
     pythFeedId: Hex,
     expiryTimestamp: number,
@@ -260,6 +301,9 @@ export abstract class BaseClient {
     throw new Error(`Failed to fetch Pyth update data: ${lastError || 'unknown error'}`);
   }
 
+  /**
+   * Resolves maker/funder address used for signing orders.
+   */
   protected async resolveMakerAddress(explicitMaker?: string): Promise<string> {
     if (explicitMaker && explicitMaker.trim()) return explicitMaker.trim();
     if (this.funderAddress && this.funderAddress.trim()) return this.funderAddress.trim();
@@ -278,6 +322,9 @@ export abstract class BaseClient {
     throw new Error('Unable to resolve maker address from signer; pass args.maker explicitly');
   }
 
+  /**
+   * Signs EIP-712 payload, supporting both ethers-style and viem-style signers.
+   */
   protected async signTypedData(
     signer: SignerLike,
     domain: Record<string, unknown>,
@@ -304,12 +351,14 @@ export abstract class BaseClient {
     return signTypedData(domain, ORDER_TYPES, message);
   }
 
+  /** Generates a monotonic nonce derived from current timestamp. */
   protected nextNonce(): string {
     this.nonceCounter = (this.nonceCounter + 1) % 1000;
     const base = BigInt(this.now());
     return (base * 1000n + BigInt(this.nonceCounter)).toString();
   }
 
+  /** Fetches/validates market data needed for order signing. */
   protected async fetchMarketSigningInfo(marketId: string): Promise<MarketSigningInfo> {
     const response = await this.getMarket(marketId);
     const market = response?.market;
@@ -343,6 +392,7 @@ export abstract class BaseClient {
     };
   }
 
+  /** Builds HMAC headers for developer-authenticated API requests. */
   protected buildDeveloperAuthHeaders(
     method: string,
     pathWithQuery: string,
@@ -363,6 +413,10 @@ export abstract class BaseClient {
     };
   }
 
+  /**
+   * Executes an HTTP request and parses JSON/text payload.
+   * Throws `SpeculiteApiError` on non-2xx responses.
+   */
   protected async request<T = unknown>(
     method: string,
     path: string,

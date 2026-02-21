@@ -2,7 +2,13 @@ import { OrderType, Side, type CreateOrderArgs, type DeveloperOrderAcceptedRespo
 import { normalizeHexSignature, scaleToInt, scaledToDecimalString } from '../internal/utils.js';
 import { PublicClient } from './publicClient.js';
 
+/**
+ * Order signing/composition helpers layered on top of REST methods.
+ */
 export class TradingClient extends PublicClient {
+  /**
+   * Builds and signs an EIP-712 order payload without submitting it.
+   */
   async createOrder(
     args: CreateOrderArgs,
     marketInfo?: MarketSigningInfo
@@ -75,6 +81,9 @@ export class TradingClient extends PublicClient {
     return order;
   }
 
+  /**
+   * Convenience wrapper: `createOrder` + `postOrder`.
+   */
   async createAndPostOrder(
     args: CreateOrderArgs,
     marketInfo?: MarketSigningInfo

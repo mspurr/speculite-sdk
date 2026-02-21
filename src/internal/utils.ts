@@ -2,17 +2,20 @@ import type { Address, Hex } from 'viem';
 import { SCALE } from './constants.js';
 import type { RequestOptions } from '../types.js';
 
+/** Normalizes API host by trimming and removing trailing slash. */
 export function normalizeHost(host: string): string {
   const trimmed = host.trim();
   if (!trimmed) throw new Error('host is required');
   return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
 }
 
+/** Ensures a request path starts with `/`. */
 export function ensureLeadingSlash(path: string): string {
   if (!path) return '/';
   return path.startsWith('/') ? path : `/${path}`;
 }
 
+/** Builds a URL with optional query params, skipping nullish values. */
 export function buildUrl(baseHost: string, path: string, query?: RequestOptions['query']): URL {
   const url = new URL(`${baseHost}${ensureLeadingSlash(path)}`);
   if (query) {
@@ -24,6 +27,7 @@ export function buildUrl(baseHost: string, path: string, query?: RequestOptions[
   return url;
 }
 
+/** Parses and validates a strictly positive decimal number. */
 export function parsePositiveNumber(value: number | string, field: string): number {
   const parsed = typeof value === 'number' ? value : Number.parseFloat(value.trim());
   if (!Number.isFinite(parsed)) {
@@ -35,11 +39,13 @@ export function parsePositiveNumber(value: number | string, field: string): numb
   return parsed;
 }
 
+/** Returns normalized decimal string after positive-number validation. */
 export function toPositiveDecimalString(value: number | string, field: string): string {
   parsePositiveNumber(value, field);
   return typeof value === 'number' ? value.toString() : value.trim();
 }
 
+/** Scales decimal to fixed integer precision used by the matching engine. */
 export function scaleToInt(value: number | string, field: string): number {
   const parsed = parsePositiveNumber(value, field);
   const scaled = Math.floor(parsed * SCALE);
@@ -49,6 +55,7 @@ export function scaleToInt(value: number | string, field: string): number {
   return scaled;
 }
 
+/** Converts fixed integer precision back to compact decimal string. */
 export function scaledToDecimalString(scaled: number): string {
   const whole = Math.floor(scaled / SCALE);
   const frac = scaled % SCALE;
@@ -56,12 +63,14 @@ export function scaledToDecimalString(scaled: number): string {
   return `${whole}.${frac.toString().padStart(6, '0').replace(/0+$/, '')}`;
 }
 
+/** Ensures signature has hex prefix and is non-empty. */
 export function normalizeHexSignature(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) throw new Error('Signature is empty');
   return trimmed.startsWith('0x') ? trimmed : `0x${trimmed}`;
 }
 
+/** Validates and returns a checksummed-like 20-byte hex address string. */
 export function normalizeAddress(value: unknown, fieldName: string): Address {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error(`${fieldName} is required`);
@@ -73,6 +82,7 @@ export function normalizeAddress(value: unknown, fieldName: string): Address {
   return trimmed as Address;
 }
 
+/** Normalizes optional Pyth feed id to 32-byte hex format. */
 export function normalizePythFeedId(value: unknown): Hex | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
@@ -84,6 +94,7 @@ export function normalizePythFeedId(value: unknown): Hex | null {
   return withPrefix as Hex;
 }
 
+/** Parses mixed timestamp formats into unix seconds. */
 export function parseExpiryTimestamp(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -102,6 +113,7 @@ export function parseExpiryTimestamp(value: unknown): number | null {
   return null;
 }
 
+/** Converts raw bytes into hex-prefixed string. */
 export function bytesToHex(bytes: Uint8Array): Hex {
   const body = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
   return `0x${body}` as Hex;

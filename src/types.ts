@@ -1,10 +1,12 @@
 import type { Address, Hex, PublicClient, WalletClient } from 'viem';
 
+/** Trade side used by order creation and order/trade responses. */
 export const Side = {
   BUY: 'BUY',
   SELL: 'SELL'
 } as const;
 
+/** Order execution mode. */
 export const OrderType = {
   LIMIT: 'LIMIT',
   MARKET: 'MARKET'
@@ -14,11 +16,13 @@ export type OrderSide = typeof Side[keyof typeof Side];
 export type OrderTypeValue = typeof OrderType[keyof typeof OrderType];
 export type Outcome = 'YES' | 'NO';
 
+/** Developer API credentials generated from the Speculite app UI. */
 export interface ApiCredentials {
   apiKey: string;
   apiSecret: string;
 }
 
+/** High-level order arguments for `createOrder` / `createAndPostOrder`. */
 export interface CreateOrderArgs {
   marketId: string;
   outcome: Outcome;
@@ -32,6 +36,7 @@ export interface CreateOrderArgs {
   maker?: string;
 }
 
+/** Canonical market metadata used for order-signing domain resolution. */
 export interface MarketSigningInfo {
   marketId: string;
   exchangeAddress: string;
@@ -39,6 +44,7 @@ export interface MarketSigningInfo {
   takerFeeBps: number;
 }
 
+/** ---------- Public Market Data Types ---------- */
 export interface Market {
   market_id: string;
   exchange_address?: string | null;
@@ -96,6 +102,7 @@ export interface OrderbookResponse {
   [key: string]: unknown;
 }
 
+/** ---------- Developer API Types ---------- */
 export interface DeveloperApiKey {
   api_key_id: string;
   key_prefix: string;
@@ -238,6 +245,7 @@ export interface DeveloperPositionsParams extends DeveloperListParams {
   includeClosed?: boolean;
 }
 
+/** Response returned when an order is accepted by the backend lifecycle queue. */
 export interface DeveloperOrderAcceptedResponse {
   success: boolean;
   lifecycle_status: 'ACCEPTED';
@@ -268,6 +276,8 @@ export interface DeveloperResolveMarketResponse {
   message: string;
 }
 
+/** ---------- Signing and Lifecycle Transaction Types ---------- */
+/** Raw order payload shape expected by `/api/developer/orders`. */
 export interface DeveloperOrderRequest {
   market_id: string;
   maker: string;
@@ -282,6 +292,7 @@ export interface DeveloperOrderRequest {
   max_slippage?: string;
 }
 
+/** Minimal signer abstraction accepted by the SDK. */
 export interface SignerLike {
   address?: string;
   account?: { address?: string };
@@ -289,6 +300,7 @@ export interface SignerLike {
   signTypedData: (...args: any[]) => Promise<string>;
 }
 
+/** Generic prepared transaction representation used by lifecycle helpers. */
 export interface PreparedOnchainTransaction {
   to: Address;
   data: Hex;
@@ -304,6 +316,7 @@ export interface PreparedResolveTransaction extends PreparedOnchainTransaction {
   marketIdOnchain: number;
 }
 
+/** On-chain metadata required to build lifecycle transactions. */
 export interface OnchainMarketInfo {
   marketId: string;
   marketIdOnchain: number;
@@ -345,11 +358,16 @@ export interface PrepareResolveArgs {
   allowLatestFallback?: boolean;
 }
 
+/** Return type for lifecycle methods that both prepare and submit txs. */
 export interface OnchainExecutionResult<T extends PreparedOnchainTransaction> {
   hash: Hex;
   tx: T;
 }
 
+/**
+ * Runtime overrides for networking/chain integrations.
+ * Useful in tests and advanced integrations.
+ */
 export interface RuntimeOptions {
   fetch?: typeof fetch;
   now?: () => number;
@@ -360,11 +378,13 @@ export interface RuntimeOptions {
   pythPriceServiceUrl?: string;
 }
 
+/** Preferred constructor options for `SpeculiteClobClient`. */
 export interface ClientConstructorOptions extends RuntimeOptions {
   signatureType?: number;
   funderAddress?: string;
 }
 
+/** Internal request options used by client transport. */
 export interface RequestOptions {
   query?: Record<string, string | number | boolean | null | undefined>;
   body?: unknown;
@@ -373,6 +393,7 @@ export interface RequestOptions {
   authToken?: string;
 }
 
+/** Lightweight JSON object shape used by error extraction utilities. */
 export interface JsonObject {
   [key: string]: unknown;
 }

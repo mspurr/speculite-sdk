@@ -21,7 +21,14 @@ import type {
 } from '../types.js';
 import { TradingClient } from './tradingClient.js';
 
+/**
+ * Wallet-native lifecycle helpers.
+ *
+ * `prepare*` methods return unsigned tx payloads.
+ * action methods (`mintTokens`, `claimWinnings`, ...) prepare + send in one call.
+ */
 export class LifecycleClient extends TradingClient {
+  /** Prepares ERC20 approve tx (typically USDC -> exchange). */
   async prepareApproveUsdcTx(args: PrepareApproveUsdcArgs): Promise<PreparedOnchainTransaction> {
     const spender = normalizeAddress(args.spender, 'spender');
     const usdcAddress = normalizeAddress(args.usdcAddress, 'usdcAddress');
@@ -40,6 +47,7 @@ export class LifecycleClient extends TradingClient {
     };
   }
 
+  /** Prepares mint tx for paired YES/NO tokens. */
   async prepareMintTx(args: PrepareMintArgs): Promise<PreparedOnchainTransaction> {
     const market = await this.resolveOnchainMarketInfo(args.marketId, args.market);
     const amount = parseUnits(toPositiveDecimalString(args.amount, 'amount'), 6);
@@ -57,6 +65,7 @@ export class LifecycleClient extends TradingClient {
     };
   }
 
+  /** Prepares merge tx to redeem paired tokens back to USDC. */
   async prepareMergeTx(args: PrepareMergeArgs): Promise<PreparedOnchainTransaction> {
     const market = await this.resolveOnchainMarketInfo(args.marketId, args.market);
     const holder = normalizeAddress(args.holder, 'holder');
@@ -75,6 +84,7 @@ export class LifecycleClient extends TradingClient {
     };
   }
 
+  /** Prepares claim tx for resolved-market winnings. */
   async prepareClaimTx(args: PrepareClaimArgs): Promise<PreparedOnchainTransaction> {
     const market = await this.resolveOnchainMarketInfo(args.marketId, args.market);
     const data = encodeFunctionData({
@@ -91,6 +101,12 @@ export class LifecycleClient extends TradingClient {
     };
   }
 
+  /**
+   * Prepares resolve tx:
+   * - fetches Pyth update data
+   * - computes update fee + safety buffer
+   * - returns payable tx payload
+   */
   async prepareResolveTx(args: PrepareResolveArgs): Promise<PreparedResolveTransaction> {
     const market = await this.resolveOnchainMarketInfo(args.marketId, args.market);
     const pythAddress = normalizeAddress(
@@ -142,6 +158,7 @@ export class LifecycleClient extends TradingClient {
     };
   }
 
+  /** Sends a prepared transaction via configured wallet client. */
   async sendPreparedTransaction(
     tx: PreparedOnchainTransaction,
     account?: Address
@@ -158,6 +175,7 @@ export class LifecycleClient extends TradingClient {
     });
   }
 
+  /** Prepares + sends approve tx. */
   async approveUsdc(
     args: PrepareApproveUsdcArgs & { account?: Address }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
@@ -166,6 +184,7 @@ export class LifecycleClient extends TradingClient {
     return { hash, tx };
   }
 
+  /** Prepares + sends mint tx. */
   async mintTokens(
     args: PrepareMintArgs & { account?: Address }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
@@ -174,6 +193,7 @@ export class LifecycleClient extends TradingClient {
     return { hash, tx };
   }
 
+  /** Prepares + sends merge tx. */
   async mergeTokens(
     args: PrepareMergeArgs & { account?: Address }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
@@ -182,6 +202,7 @@ export class LifecycleClient extends TradingClient {
     return { hash, tx };
   }
 
+  /** Prepares + sends claim tx. */
   async claimWinnings(
     args: PrepareClaimArgs & { account?: Address }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
@@ -190,6 +211,7 @@ export class LifecycleClient extends TradingClient {
     return { hash, tx };
   }
 
+  /** Prepares + sends resolve tx. */
   async resolveMarket(
     args: PrepareResolveArgs & { account?: Address }
   ): Promise<OnchainExecutionResult<PreparedResolveTransaction>> {

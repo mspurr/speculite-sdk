@@ -1,3 +1,6 @@
+/**
+ * EIP-712 typed-data schema used for off-chain order signatures.
+ */
 export const ORDER_TYPES = {
   Order: [
     { name: 'marketId', type: 'uint256' },
@@ -13,9 +16,12 @@ export const ORDER_TYPES = {
 } as const;
 
 export const SCALE = 1_000_000;
+/** Minimum extra wei added when paying Pyth update fee to avoid edge underpayment. */
 export const MIN_UPDATE_FEE_BUFFER_WEI = 1000n;
+/** Default Hermes endpoint used to fetch Pyth update payloads. */
 export const DEFAULT_PYTH_PRICE_SERVICE_URL = 'https://hermes.pyth.network';
 
+/** ERC20 ABI subset needed for USDC approvals. */
 export const ERC20_ABI = [{
   inputs: [
     { internalType: 'address', name: 'spender', type: 'address' },
@@ -27,6 +33,7 @@ export const ERC20_ABI = [{
   type: 'function'
 }] as const;
 
+/** Exchange ABI subset needed to mint paired outcome tokens. */
 export const EXCHANGE_MINT_ABI = [{
   inputs: [
     { internalType: 'uint256', name: 'marketId', type: 'uint256' },
@@ -38,6 +45,7 @@ export const EXCHANGE_MINT_ABI = [{
   type: 'function'
 }] as const;
 
+/** Exchange ABI subset needed to merge paired tokens back into USDC. */
 export const EXCHANGE_MERGE_ABI = [{
   inputs: [
     { internalType: 'uint256', name: 'marketId', type: 'uint256' },
@@ -50,6 +58,7 @@ export const EXCHANGE_MERGE_ABI = [{
   type: 'function'
 }] as const;
 
+/** Exchange ABI subset needed to claim winnings on resolved markets. */
 export const EXCHANGE_CLAIM_ABI = [{
   inputs: [{ internalType: 'uint256', name: 'marketId', type: 'uint256' }],
   name: 'claimWinnings',
@@ -58,6 +67,7 @@ export const EXCHANGE_CLAIM_ABI = [{
   type: 'function'
 }] as const;
 
+/** Exchange ABI subset needed to resolve a market with Pyth updates. */
 export const EXCHANGE_RESOLVE_ABI = [{
   inputs: [
     { internalType: 'uint256', name: 'marketId', type: 'uint256' },
@@ -70,6 +80,7 @@ export const EXCHANGE_RESOLVE_ABI = [{
   type: 'function'
 }] as const;
 
+/** Pyth ABI subset needed to quote fee for a price update payload. */
 export const PYTH_ABI = [{
   inputs: [{ internalType: 'bytes[]', name: 'updateData', type: 'bytes[]' }],
   name: 'getUpdateFee',
