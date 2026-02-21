@@ -4,6 +4,7 @@ import { encodeFunctionData, parseUnits } from 'viem';
 import {
   OrderType,
   Side,
+  SpeculiteApiError,
   SpeculiteClobClient,
   type ApiCredentials,
   type SignerLike
@@ -375,6 +376,93 @@ describe('SpeculiteClobClient', () => {
     const headers = new Headers(init.headers);
     expect(headers.get('speculite-api-key')).toBe(API_CREDS.apiKey);
     expect(headers.get('speculite-signature')).toBeTruthy();
+  });
+
+  it('falls back to market data endpoint when orderbook endpoint returns 404', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('404 page not found\n', {
+          status: 404,
+          headers: { 'content-type': 'text/plain; charset=utf-8' }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          market_id: 'market-1',
+          midpoint_price: '0.5',
+          best_bid: '0.49',
+          best_ask: '0.51',
+          spread: '0.02',
+          timestamp: '2026-01-01T00:00:00.000Z'
+        })
+      );
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      0,
+      undefined,
+      { fetch: fetchMock as unknown as typeof fetch }
+    );
+
+    const orderbook = await client.getOrderbook('market-1');
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://api.speculite.com/clob/orderbook?market_id=market-1',
+      expect.objectContaining({ method: 'GET' })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://api.speculite.com/api/market-data/market-1',
+      expect.objectContaining({ method: 'GET' })
+    );
+    expect(orderbook).toEqual({
+      market_id: 'market-1',
+      bids: [{ price: '0.49', token_id: 0 }],
+      asks: [{ price: '0.51', token_id: 0 }],
+      last_price: '0.5',
+      timestamp: '2026-01-01T00:00:00.000Z'
+    });
+  });
+
+  it('includes request context in SpeculiteApiError', async () => {
+    const fetchMock = jest.fn().mockResolvedValue(
+      jsonResponse({ error: 'failure' }, 500)
+    );
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      0,
+      undefined,
+      { fetch: fetchMock as unknown as typeof fetch }
+    );
+
+    let thrown: unknown;
+    try {
+      await client.getOpenOrders('market-1');
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeInstanceOf(SpeculiteApiError);
+    expect(thrown).toMatchObject({
+      name: 'SpeculiteApiError',
+      status: 500,
+      method: 'GET',
+      path: '/api/developer/orders/open?market_id=market-1',
+      url: 'https://api.speculite.com/api/developer/orders/open?market_id=market-1'
+    });
+    expect((thrown as Error).message).toBe(
+      'GET /api/developer/orders/open?market_id=market-1 failed: failure'
+    );
+    expect(fetchMock).toHaveBeenCalled();
   });
 
   it('prepares mint transaction payload from market metadata', async () => {

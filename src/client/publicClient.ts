@@ -1,4 +1,5 @@
 import { BaseClient } from './baseClient.js';
+import { SpeculiteApiError } from '../errors.js';
 import type {
   DeveloperApiKeyRevokeResponse,
   DeveloperApiKeysResponse,
@@ -82,9 +83,27 @@ export class PublicClient extends BaseClient {
 
   /** Fetches current orderbook snapshot for one market. */
   async getOrderbook(marketId: string): Promise<OrderbookResponse> {
-    return this.request('GET', '/clob/orderbook', {
-      query: { market_id: marketId }
-    });
+    try {
+      return await this.request('GET', '/clob/orderbook', {
+        query: { market_id: marketId }
+      });
+    } catch (error) {
+      if (!(error instanceof SpeculiteApiError) || error.status !== 404) {
+        throw error;
+      }
+
+      // Some API deployments do not expose `/clob/orderbook` publicly.
+      // Fall back to `/api/market-data/:id` so integrations still receive
+      // best bid/ask snapshots in the same method.
+      const marketData = await this.getMarketData(marketId);
+      return {
+        market_id: marketId,
+        bids: marketData.best_bid ? [{ price: String(marketData.best_bid), token_id: 0 }] : [],
+        asks: marketData.best_ask ? [{ price: String(marketData.best_ask), token_id: 0 }] : [],
+        last_price: marketData.midpoint_price ?? null,
+        timestamp: marketData.timestamp
+      };
+    }
   }
 
   /** Validates current developer API credentials. */

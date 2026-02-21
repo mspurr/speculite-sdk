@@ -464,7 +464,11 @@ export abstract class BaseClient {
     const payload = isJson ? await response.json() : await response.text();
 
     if (!response.ok) {
-      throw new SpeculiteApiError(response.status, payload);
+      throw new SpeculiteApiError(response.status, payload, {
+        method,
+        path: pathWithQuery,
+        url: url.toString()
+      });
     }
 
     return payload as T;
