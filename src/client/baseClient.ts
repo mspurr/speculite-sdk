@@ -332,18 +332,34 @@ export abstract class BaseClient {
     makerAddress: string
   ): Promise<string> {
     const signTypedData = signer.signTypedData.bind(signer);
+    const usesSingleArgStyle = signTypedData.length < 2;
 
-    const prefersViemStyle = Boolean(signer.account?.address) && signTypedData.length < 2;
-    if (prefersViemStyle) {
+    if (usesSingleArgStyle) {
+      // viem local accounts (`privateKeyToAccount`) use object-style signTypedData
+      // but do not expose signer.account. Wallet-client style often requires account.
+      if (signer.account?.address) {
+        try {
+          return await signTypedData({
+            account: makerAddress,
+            domain,
+            types: ORDER_TYPES,
+            primaryType: 'Order',
+            message
+          });
+        } catch {
+          // fall through to object-style without account
+        }
+      }
+
       try {
         return await signTypedData({
-          account: makerAddress,
           domain,
           types: ORDER_TYPES,
           primaryType: 'Order',
           message
         });
       } catch {
+        // last resort for non-viem signers that still expose single-arg function length
         return signTypedData(domain, ORDER_TYPES, message);
       }
     }

@@ -129,7 +129,10 @@ describe('SpeculiteClobClient', () => {
     );
 
     expect((signer.signTypedData as jest.Mock).mock.calls.length).toBe(1);
-    const [domain, types, message] = (signer.signTypedData as jest.Mock).mock.calls[0];
+    const firstSignCall = (signer.signTypedData as jest.Mock).mock.calls[0];
+    const [domain, types, message] = firstSignCall.length === 1
+      ? [firstSignCall[0].domain, firstSignCall[0].types, firstSignCall[0].message]
+      : firstSignCall;
 
     expect(domain).toEqual({
       name: 'SpeculiteExchange',
@@ -247,6 +250,53 @@ describe('SpeculiteClobClient', () => {
 
     expect(order.signature).toBe('0x1234abcd');
     expect((viemLikeSigner.signTypedData as jest.Mock).mock.calls.length).toBe(1);
+  });
+
+  it('supports viem local account signer without signer.account field', async () => {
+    const viemLocalLikeSigner: SignerLike = {
+      address: '0x3333333333333333333333333333333333333333',
+      signTypedData: jest.fn(async (args: any) => {
+        expect(args.primaryType).toBe('Order');
+        expect(args.domain.verifyingContract).toBe('0x4444444444444444444444444444444444444444');
+        expect(args.account).toBeUndefined();
+        return '0x5678dcba';
+      })
+    };
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      viemLocalLikeSigner,
+      API_CREDS,
+      {
+        fetch: jest.fn()
+          .mockResolvedValueOnce(
+            jsonResponse({
+              success: true,
+              market: {
+                market_id: 'market-1',
+                exchange_address: '0x4444444444444444444444444444444444444444',
+                market_id_onchain: 55,
+                taker_fee_bps: 80
+              }
+            })
+          )
+      }
+    );
+
+    const order = await client.createOrder({
+      marketId: 'market-1',
+      outcome: 'YES',
+      side: Side.BUY,
+      price: 0.5,
+      size: 1,
+      nonce: '1',
+      expiry: 1_900_000_000,
+      orderType: OrderType.LIMIT
+    });
+
+    expect(order.signature).toBe('0x5678dcba');
+    expect((viemLocalLikeSigner.signTypedData as jest.Mock).mock.calls.length).toBe(1);
   });
 
   it('derives maker address without explicit funder/signature args in constructor', async () => {
