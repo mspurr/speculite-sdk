@@ -743,6 +743,116 @@ describe('SpeculiteClobClient', () => {
     );
   });
 
+  it('reports successful mint lifecycle activity through developer API', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          market: {
+            market_id: 'market-1',
+            exchange_address: '0x1111111111111111111111111111111111111111',
+            market_id_onchain: 77
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          recorded: true,
+          activity: {
+            transaction_id: 'tx-1',
+            market_id: 'market-1',
+            wallet_address: '0x3333333333333333333333333333333333333333',
+            action: 'MINT',
+            amount: '25',
+            transaction_hash: '0xabc123',
+            source_channel: 'API',
+            source_api_key_id: 'key-1'
+          }
+        })
+      );
+    const walletClient = {
+      account: { address: '0x3333333333333333333333333333333333333333' },
+      sendTransaction: jest.fn().mockResolvedValue('0xabc123')
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      {
+        fetch: fetchMock as unknown as typeof fetch,
+        walletClient,
+        now: () => 1_700_000_000_000
+      }
+    );
+
+    const result = await client.mintTokens({
+      marketId: 'market-1',
+      amount: '25'
+    });
+
+    expect(result.hash).toBe('0xabc123');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [reportUrl, reportInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(reportUrl).toBe('https://api.speculite.com/api/developer/lifecycle-events');
+    expect(reportInit.method).toBe('POST');
+    expect(JSON.parse(reportInit.body as string)).toEqual({
+      market_id: 'market-1',
+      wallet_address: '0x3333333333333333333333333333333333333333',
+      action: 'MINT',
+      amount: '25',
+      transaction_hash: '0xabc123'
+    });
+
+    const headers = new Headers(reportInit.headers);
+    expect(headers.get('speculite-api-key')).toBe(API_CREDS.apiKey);
+    expect(headers.get('speculite-signature')).toBeTruthy();
+  });
+
+  it('keeps lifecycle actions successful when activity reporting fails', async () => {
+    const fetchMock = jest
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          market: {
+            market_id: 'market-1',
+            exchange_address: '0x1111111111111111111111111111111111111111',
+            market_id_onchain: 77
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ error: 'downstream unavailable' }, 500)
+      );
+    const walletClient = {
+      account: { address: '0x3333333333333333333333333333333333333333' },
+      sendTransaction: jest.fn().mockResolvedValue('0xfeed123')
+    } as any;
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      API_CREDS,
+      {
+        fetch: fetchMock as unknown as typeof fetch,
+        walletClient
+      }
+    );
+
+    const result = await client.mintTokens({
+      marketId: 'market-1',
+      amount: '10'
+    });
+
+    expect(result.hash).toBe('0xfeed123');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('derives wallet account from signer when wallet client has no account', async () => {
     const signer: SignerLike = {
       address: '0x9999999999999999999999999999999999999999',

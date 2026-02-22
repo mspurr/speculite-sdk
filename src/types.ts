@@ -160,6 +160,8 @@ export interface DeveloperOpenOrder {
   filled_size: string;
   status: string;
   client_order_id: string;
+  source_channel?: 'WEB' | 'API';
+  source_api_key_id?: string | null;
   created_at: string;
 }
 
@@ -202,6 +204,8 @@ export interface DeveloperTradeFill {
   settlement_status: string;
   transaction_hash: string | null;
   user_operation_hash: string | null;
+  source_channel?: 'WEB' | 'API';
+  source_api_key_id?: string | null;
   matched_at: string;
 }
 
@@ -274,6 +278,31 @@ export interface DeveloperResolveMarketResponse {
     winningOutcome?: string;
   } | null;
   message: string;
+}
+
+export type DeveloperLifecycleAction = 'MINT' | 'MERGE' | 'CLAIM';
+
+export interface DeveloperLifecycleEventRequest {
+  market_id: string;
+  wallet_address?: string;
+  action: DeveloperLifecycleAction;
+  amount?: string;
+  transaction_hash: string;
+}
+
+export interface DeveloperLifecycleEventResponse {
+  success: boolean;
+  recorded: boolean;
+  activity: {
+    transaction_id: string | null;
+    market_id: string;
+    wallet_address: string | null;
+    action: DeveloperLifecycleAction;
+    amount: string;
+    transaction_hash: string;
+    source_channel: 'API';
+    source_api_key_id: string;
+  };
 }
 
 /** ---------- Signing and Lifecycle Transaction Types ---------- */

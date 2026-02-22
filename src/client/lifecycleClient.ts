@@ -11,6 +11,7 @@ import {
 } from '../internal/constants.js';
 import { normalizeAddress, toPositiveDecimalString } from '../internal/utils.js';
 import type {
+  DeveloperLifecycleAction,
   MintFundingStatus,
   MintFundingStatusArgs,
   OnchainExecutionResult,
@@ -87,6 +88,41 @@ export class LifecycleClient extends TradingClient {
       message.includes('insufficient allowance') ||
       message.includes('insufficient balance')
     );
+  }
+
+  private async resolveReportingWalletAddress(
+    account?: OnchainExecutionAccount
+  ): Promise<Address | undefined> {
+    try {
+      const walletClient = this.requireWalletClient();
+      const executionAccount = await this.resolveWalletAccount(walletClient, account);
+      return this.executionAccountAddress(executionAccount);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async reportLifecycleEvent(args: {
+    marketId: string;
+    action: DeveloperLifecycleAction;
+    transactionHash: Hex;
+    amount?: string;
+    walletAddress?: Address;
+  }): Promise<void> {
+    // Reporting is optional and should never break successful on-chain execution.
+    if (!this.getApiCredentials()) return;
+
+    try {
+      await this.recordLifecycleEvent({
+        market_id: args.marketId,
+        wallet_address: args.walletAddress,
+        action: args.action,
+        amount: args.amount,
+        transaction_hash: args.transactionHash
+      });
+    } catch {
+      // best-effort only
+    }
   }
 
   /** Prepares ERC20 approve tx (typically USDC -> exchange). */
@@ -287,10 +323,12 @@ export class LifecycleClient extends TradingClient {
     args: PrepareMintArgs & { account?: OnchainExecutionAccount; rpcUrl?: string }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
     const market = await this.resolveOnchainMarketInfo(args.marketId, args.market);
-    const amount = parseUnits(toPositiveDecimalString(args.amount, 'amount'), 6);
+    const normalizedAmount = toPositiveDecimalString(args.amount, 'amount');
+    const amount = parseUnits(normalizedAmount, 6);
     const tx = this.buildMintTx(market.marketIdOnchain, market.exchangeAddress, amount);
     const walletClient = this.requireWalletClient();
     const executionAccount = await this.resolveWalletAccount(walletClient, args.account);
+    const walletAddress = this.executionAccountAddress(executionAccount);
 
     try {
       const hash = await walletClient.sendTransaction({
@@ -299,6 +337,13 @@ export class LifecycleClient extends TradingClient {
         data: tx.data,
         value: tx.value || 0n,
         chain: walletClient.chain ?? null
+      });
+      await this.reportLifecycleEvent({
+        marketId: args.marketId,
+        action: 'MINT',
+        amount: normalizedAmount,
+        walletAddress,
+        transactionHash: hash
       });
       return { hash, tx };
     } catch (error) {
@@ -333,8 +378,16 @@ export class LifecycleClient extends TradingClient {
   async mergeTokens(
     args: PrepareMergeArgs & { account?: OnchainExecutionAccount }
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
+    const normalizedPairs = toPositiveDecimalString(args.pairs, 'pairs');
     const tx = await this.prepareMergeTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);
+    await this.reportLifecycleEvent({
+      marketId: args.marketId,
+      action: 'MERGE',
+      amount: normalizedPairs,
+      walletAddress: await this.resolveReportingWalletAddress(args.account),
+      transactionHash: hash
+    });
     return { hash, tx };
   }
 
@@ -344,6 +397,12 @@ export class LifecycleClient extends TradingClient {
   ): Promise<OnchainExecutionResult<PreparedOnchainTransaction>> {
     const tx = await this.prepareClaimTx(args);
     const hash = await this.sendPreparedTransaction(tx, args.account);
+    await this.reportLifecycleEvent({
+      marketId: args.marketId,
+      action: 'CLAIM',
+      walletAddress: await this.resolveReportingWalletAddress(args.account),
+      transactionHash: hash
+    });
     return { hash, tx };
   }
 

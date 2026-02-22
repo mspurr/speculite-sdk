@@ -5,6 +5,8 @@ import type {
   DeveloperApiKeysResponse,
   DeveloperAuthMeResponse,
   DeveloperCancelOrderResponse,
+  DeveloperLifecycleEventRequest,
+  DeveloperLifecycleEventResponse,
   DeveloperOpenOrdersResponse,
   DeveloperOrderAcceptedResponse,
   DeveloperOrderHistoryResponse,
@@ -176,6 +178,16 @@ export class PublicClient extends BaseClient {
 
     return this.request('POST', `/api/developer/markets/${normalizedMarketId}/resolve`, {
       auth: 'developer'
+    });
+  }
+
+  /** Records wallet-native lifecycle activity under developer credentials. */
+  async recordLifecycleEvent(
+    payload: DeveloperLifecycleEventRequest
+  ): Promise<DeveloperLifecycleEventResponse> {
+    return this.request('POST', '/api/developer/lifecycle-events', {
+      auth: 'developer',
+      body: payload
     });
   }
 
