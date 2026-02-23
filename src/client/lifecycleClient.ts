@@ -120,8 +120,11 @@ export class LifecycleClient extends TradingClient {
         amount: args.amount,
         transaction_hash: args.transactionHash
       });
-    } catch {
-      // best-effort only
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      console.warn(
+        `[speculite-sdk] lifecycle event reporting failed action=${args.action} market=${args.marketId} tx=${args.transactionHash}: ${reason}`
+      );
     }
   }
 
