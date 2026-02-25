@@ -75,7 +75,7 @@ console.log(order.order_id, order.lifecycle_status);
 - `prepareMintTx({ marketId, amount })`
 - `prepareMergeTx({ marketId, pairs, holder })`
 - `prepareClaimTx({ marketId })`
-- `prepareResolveTx({ marketId, pythAddress, rpcUrl? })`
+- `prepareResolveTx({ marketId, rpcUrl? })`
 - `getMintFundingStatus({ marketId, amount, account?, rpcUrl? })`
 - `sendPreparedTransaction(tx, account?)`
 - `approveUsdc(...)`
@@ -95,6 +95,8 @@ console.log(order.order_id, order.lifecycle_status);
 - Developer API keys are created in the Speculite web app settings.
 - The SDK signs developer API requests with `SPECULITE-API-KEY`, `SPECULITE-TIMESTAMP`, `SPECULITE-SIGNATURE`.
 - On-chain lifecycle methods are wallet-native and paid by the user's wallet (no sponsored gas).
+- Resolve helpers read `pyth_address` from backend market metadata (`/api/markets/:id`).
+- Do not pass `pythAddress` in SDK calls; it is backend-managed.
 - When developer credentials are configured, successful `mintTokens` / `mergeTokens` / `claimWinnings` calls also report lifecycle activity to `/api/developer/lifecycle-events` (best-effort) so profile analytics can attribute API activity.
 - `resolveExpiredMarket` is an API-key endpoint that triggers backend/operator resolution for expired markets.
 - Keep API secret and private keys out of source control.
@@ -126,8 +128,7 @@ const client = new SpeculiteClobClient(
   },
   {
     walletClient,
-    rpcUrl: RPC_URL,
-    pythAddress: process.env.PYTH_ADDRESS as `0x${string}`
+    rpcUrl: RPC_URL
   }
 );
 

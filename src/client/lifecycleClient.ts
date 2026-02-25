@@ -198,10 +198,9 @@ export class LifecycleClient extends TradingClient {
    */
   async prepareResolveTx(args: PrepareResolveArgs): Promise<PreparedResolveTransaction> {
     const market = await this.resolveOnchainMarketInfo(args.marketId, args.market);
-    const pythAddress = normalizeAddress(
-      args.pythAddress || this.defaultPythAddress,
-      'pythAddress'
-    );
+    if (!market.pythAddress) {
+      throw new Error('Market is missing pyth_address');
+    }
     if (!market.pythFeedId) {
       throw new Error('Market is missing pyth_feed_id');
     }
@@ -218,7 +217,7 @@ export class LifecycleClient extends TradingClient {
 
     const publicClient = this.resolvePublicClient(args.rpcUrl);
     const updateFee = await publicClient.readContract({
-      address: pythAddress,
+      address: market.pythAddress,
       abi: PYTH_ABI,
       functionName: 'getUpdateFee',
       args: [updateData]
@@ -232,7 +231,7 @@ export class LifecycleClient extends TradingClient {
     const data = encodeFunctionData({
       abi: EXCHANGE_RESOLVE_ABI,
       functionName: 'resolveMarketWithPyth',
-      args: [BigInt(market.marketIdOnchain), pythAddress, updateData]
+      args: [BigInt(market.marketIdOnchain), market.pythAddress, updateData]
     });
 
     return {

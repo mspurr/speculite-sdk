@@ -43,7 +43,6 @@ export abstract class BaseClient {
   protected readonly publicClient?: PublicClient;
   protected walletClient?: WalletClient;
   protected readonly rpcUrl?: string;
-  protected readonly defaultPythAddress?: Address;
   protected readonly pythPriceServiceUrl: string;
 
   protected signer?: SignerLike;
@@ -98,7 +97,6 @@ export abstract class BaseClient {
     this.publicClient = resolvedRuntimeOptions.publicClient;
     this.walletClient = resolvedRuntimeOptions.walletClient;
     this.rpcUrl = resolvedRuntimeOptions.rpcUrl;
-    this.defaultPythAddress = resolvedRuntimeOptions.pythAddress;
     this.pythPriceServiceUrl = resolvedRuntimeOptions.pythPriceServiceUrl || DEFAULT_PYTH_PRICE_SERVICE_URL;
   }
 
@@ -203,10 +201,17 @@ export abstract class BaseClient {
       throw new Error('Market is missing market_id_onchain');
     }
 
+    const rawPythAddress = typeof market.pyth_address === 'string'
+      ? market.pyth_address.trim()
+      : '';
+
     return {
       marketId,
       marketIdOnchain: Math.floor(marketIdOnchain),
       exchangeAddress,
+      pythAddress: rawPythAddress
+        ? normalizeAddress(rawPythAddress, 'market.pyth_address')
+        : null,
       pythFeedId: normalizePythFeedId(market.pyth_feed_id),
       expiryTimestamp: parseExpiryTimestamp(market.expiration_timestamp)
     };
@@ -237,6 +242,9 @@ export abstract class BaseClient {
       marketId,
       marketIdOnchain: Math.floor(Number(marketIdOnchainRaw)),
       exchangeAddress,
+      pythAddress: override?.pythAddress
+        ? normalizeAddress(override.pythAddress, 'market.pythAddress')
+        : fetched?.pythAddress ?? null,
       pythFeedId: normalizePythFeedId(override?.pythFeedId) ?? fetched?.pythFeedId ?? null,
       expiryTimestamp: override?.expiryTimestamp ?? fetched?.expiryTimestamp ?? null
     };

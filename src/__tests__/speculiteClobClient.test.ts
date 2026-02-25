@@ -564,6 +564,7 @@ describe('SpeculiteClobClient', () => {
             market_id: 'market-1',
             exchange_address: '0x1111111111111111111111111111111111111111',
             market_id_onchain: 77,
+            pyth_address: '0x2222222222222222222222222222222222222222',
             pyth_feed_id: '0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
             expiration_timestamp: '2026-02-21T00:00:00.000Z'
           }
@@ -597,8 +598,7 @@ describe('SpeculiteClobClient', () => {
     );
 
     const tx = await client.prepareResolveTx({
-      marketId: 'market-1',
-      pythAddress: '0x2222222222222222222222222222222222222222'
+      marketId: 'market-1'
     });
 
     expect(tx.kind).toBe('resolve');
@@ -607,6 +607,9 @@ describe('SpeculiteClobClient', () => {
     expect(tx.updateFeeWei).toBe(13_345n);
     expect(tx.value).toBe(13_345n);
     expect(publicClient.readContract).toHaveBeenCalledTimes(1);
+    expect(publicClient.readContract).toHaveBeenCalledWith(expect.objectContaining({
+      address: '0x2222222222222222222222222222222222222222'
+    }));
   });
 
   it('sends prepared transaction through configured wallet client', async () => {

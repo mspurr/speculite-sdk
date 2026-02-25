@@ -50,6 +50,7 @@ export interface Market {
   exchange_address?: string | null;
   market_id_onchain?: number | string | null;
   taker_fee_bps?: number | string | null;
+  pyth_address?: string | null;
   pyth_feed_id?: string | null;
   expiration_timestamp?: string | number | null;
   [key: string]: unknown;
@@ -353,6 +354,7 @@ export interface OnchainMarketInfo {
   marketId: string;
   marketIdOnchain: number;
   exchangeAddress: Address;
+  pythAddress?: Address | null;
   pythFeedId?: Hex | null;
   expiryTimestamp?: number | null;
 }
@@ -400,7 +402,6 @@ export interface PrepareClaimArgs {
 export interface PrepareResolveArgs {
   marketId: string;
   market?: Partial<OnchainMarketInfo>;
-  pythAddress?: Address;
   rpcUrl?: string;
   pythPriceServiceUrl?: string;
   allowLatestFallback?: boolean;
@@ -422,7 +423,6 @@ export interface RuntimeOptions {
   publicClient?: PublicClient;
   walletClient?: WalletClient;
   rpcUrl?: string;
-  pythAddress?: Address;
   pythPriceServiceUrl?: string;
 }
 
