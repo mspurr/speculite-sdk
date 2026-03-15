@@ -1,4 +1,5 @@
 import type {
+  V2AttestationsResponse,
   V2ChallengeCreateRequest,
   V2ChallengeResponse,
   V2ChallengesResponse,
@@ -33,6 +34,10 @@ export class V2Client extends LifecycleClient {
 
   async getV2MarketEvidence(marketId: string): Promise<V2EvidenceResponse> {
     return this.request('GET', `/api/v2/markets/${marketId.trim()}/evidence`);
+  }
+
+  async getV2MarketAttestations(marketId: string): Promise<V2AttestationsResponse> {
+    return this.request('GET', `/api/v2/markets/${marketId.trim()}/attestations`);
   }
 
   async createV2MarketChallenge(

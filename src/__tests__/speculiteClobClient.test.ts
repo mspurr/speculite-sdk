@@ -984,13 +984,46 @@ describe('SpeculiteClobClient', () => {
             updatedAt: '2026-03-15T00:00:01.000Z',
             completedAt: '2026-03-15T00:00:01.000Z'
           },
-          evidence: []
+          evidence: [],
+          attestation: {
+            attestationId: 'attestation-1',
+            marketId: 'market-1',
+            runId: 'run-1',
+            runtimeKind: 'LOCAL_HASHED',
+            runtimeVersion: 'local-hashed-0.1.0',
+            inputHash: 'input-hash',
+            outputHash: 'output-hash',
+            evidenceBundleHash: 'bundle-hash',
+            proposalHash: 'proposal-hash',
+            attestationPayload: { runtimeKind: 'LOCAL_HASHED' },
+            signature: null,
+            createdAt: '2026-03-15T00:00:01.000Z'
+          }
         })
       )
       .mockResolvedValueOnce(
         jsonResponse({
           success: true,
           evidence: []
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          attestations: [{
+            attestationId: 'attestation-1',
+            marketId: 'market-1',
+            runId: 'run-1',
+            runtimeKind: 'LOCAL_HASHED',
+            runtimeVersion: 'local-hashed-0.1.0',
+            inputHash: 'input-hash',
+            outputHash: 'output-hash',
+            evidenceBundleHash: 'bundle-hash',
+            proposalHash: 'proposal-hash',
+            attestationPayload: { runtimeKind: 'LOCAL_HASHED' },
+            signature: null,
+            createdAt: '2026-03-15T00:00:01.000Z'
+          }]
         })
       )
       .mockResolvedValueOnce(
@@ -1026,12 +1059,14 @@ describe('SpeculiteClobClient', () => {
 
     await client.resolveV2Market('market-1');
     await client.getV2MarketEvidence('market-1');
+    await client.getV2MarketAttestations('market-1');
     await client.createV2MarketChallenge('market-1', { reason: 'Need review' });
     await client.getV2MarketChallenges('market-1');
 
     expect((fetchMock.mock.calls[0] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/resolve');
     expect((fetchMock.mock.calls[1] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/evidence');
-    expect((fetchMock.mock.calls[2] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
+    expect((fetchMock.mock.calls[2] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/attestations');
     expect((fetchMock.mock.calls[3] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
+    expect((fetchMock.mock.calls[4] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
   });
 });

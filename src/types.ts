@@ -394,6 +394,7 @@ export interface V2Market {
   updatedAt: string;
   resolutionSpec: ResolutionSpec | null;
   latestRun: ResolutionRun | null;
+  latestAttestation: RunAttestationRecord | null;
   challenges: ChallengeRecord[];
 }
 
@@ -406,6 +407,21 @@ export interface ResolutionRun {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
+}
+
+export interface RunAttestationRecord {
+  attestationId: string;
+  marketId: string;
+  runId: string;
+  runtimeKind: 'LOCAL_HASHED';
+  runtimeVersion: string;
+  inputHash: string;
+  outputHash: string;
+  evidenceBundleHash: string;
+  proposalHash: string;
+  attestationPayload: Record<string, unknown>;
+  signature: string | null;
+  createdAt: string;
 }
 
 export interface EvidenceItem {
@@ -447,6 +463,7 @@ export interface V2ResolutionResponse {
   success: boolean;
   run: ResolutionRun;
   evidence: EvidenceItem[];
+  attestation: RunAttestationRecord;
 }
 
 export interface V2EvidenceResponse {
@@ -468,6 +485,11 @@ export interface V2ChallengeResponse {
 export interface V2ChallengesResponse {
   success: boolean;
   challenges: ChallengeRecord[];
+}
+
+export interface V2AttestationsResponse {
+  success: boolean;
+  attestations: RunAttestationRecord[];
 }
 
 /** ---------- Signing and Lifecycle Transaction Types ---------- */
