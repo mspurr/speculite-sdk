@@ -369,6 +369,8 @@ export interface V2MarketPlanResult {
   decision: 'READY' | 'REJECTED';
   canonicalQuestion: string;
   plannerVersion: string;
+  plannerRuntimeKind: 'LOCAL_RULES' | 'HTTP_LLM';
+  plannerRuntimeVersion: string;
   marketKind: 'OBJECTIVE_PRICE' | 'STRUCTURED_EVENT' | null;
   marketStatus: string;
   toolCatalogVersion: string;
@@ -376,6 +378,7 @@ export interface V2MarketPlanResult {
   resolutionSpec: ResolutionSpec | null;
   resolutionSpecHash: string | null;
   rejectionReason: string | null;
+  plannerAttestation: PlannerRunRecord;
 }
 
 export interface V2Market {
@@ -393,9 +396,22 @@ export interface V2Market {
   createdAt: string;
   updatedAt: string;
   resolutionSpec: ResolutionSpec | null;
+  latestPlannerRun: PlannerRunRecord | null;
   latestRun: ResolutionRun | null;
   latestAttestation: RunAttestationRecord | null;
   challenges: ChallengeRecord[];
+}
+
+export interface PlannerRunRecord {
+  plannerRunId: string;
+  runtimeKind: 'LOCAL_RULES' | 'HTTP_LLM';
+  runtimeVersion: string;
+  inputHash: string;
+  outputHash: string;
+  validatedPlanHash: string | null;
+  attestationPayload: Record<string, unknown>;
+  signature: string | null;
+  createdAt: string;
 }
 
 export interface ResolutionRun {
@@ -490,6 +506,11 @@ export interface V2ChallengesResponse {
 export interface V2AttestationsResponse {
   success: boolean;
   attestations: RunAttestationRecord[];
+}
+
+export interface V2PlannerRunsResponse {
+  success: boolean;
+  plannerRuns: PlannerRunRecord[];
 }
 
 /** ---------- Signing and Lifecycle Transaction Types ---------- */

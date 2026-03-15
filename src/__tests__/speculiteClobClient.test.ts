@@ -901,13 +901,26 @@ describe('SpeculiteClobClient', () => {
             decision: 'READY',
             canonicalQuestion: 'Will BTC be above $120000?',
             plannerVersion: 'v2-core-0.1.0',
+            plannerRuntimeKind: 'LOCAL_RULES',
+            plannerRuntimeVersion: 'local-rules-0.1.0',
             marketKind: 'OBJECTIVE_PRICE',
             marketStatus: 'READY',
             toolCatalogVersion: '2026-03-15.v1',
             toolCatalogHash: 'catalog-hash',
             resolutionSpec: null,
             resolutionSpecHash: 'spec-hash',
-            rejectionReason: null
+            rejectionReason: null,
+            plannerAttestation: {
+              plannerRunId: 'planner-run-1',
+              runtimeKind: 'LOCAL_RULES',
+              runtimeVersion: 'local-rules-0.1.0',
+              inputHash: 'planner-input-hash',
+              outputHash: 'planner-output-hash',
+              validatedPlanHash: 'spec-hash',
+              attestationPayload: { runtimeKind: 'LOCAL_RULES' },
+              signature: null,
+              createdAt: '2026-03-15T00:00:00.000Z'
+            }
           }
         })
       )
@@ -929,7 +942,19 @@ describe('SpeculiteClobClient', () => {
             createdAt: '2026-03-15T00:00:00.000Z',
             updatedAt: '2026-03-15T00:00:00.000Z',
             resolutionSpec: null,
+            latestPlannerRun: {
+              plannerRunId: 'planner-run-1',
+              runtimeKind: 'LOCAL_RULES',
+              runtimeVersion: 'local-rules-0.1.0',
+              inputHash: 'planner-input-hash',
+              outputHash: 'planner-output-hash',
+              validatedPlanHash: 'spec-hash',
+              attestationPayload: { runtimeKind: 'LOCAL_RULES' },
+              signature: null,
+              createdAt: '2026-03-15T00:00:00.000Z'
+            },
             latestRun: null,
+            latestAttestation: null,
             challenges: []
           }
         })
@@ -1010,6 +1035,22 @@ describe('SpeculiteClobClient', () => {
       .mockResolvedValueOnce(
         jsonResponse({
           success: true,
+          plannerRuns: [{
+            plannerRunId: 'planner-run-1',
+            runtimeKind: 'LOCAL_RULES',
+            runtimeVersion: 'local-rules-0.1.0',
+            inputHash: 'planner-input-hash',
+            outputHash: 'planner-output-hash',
+            validatedPlanHash: 'spec-hash',
+            attestationPayload: { runtimeKind: 'LOCAL_RULES' },
+            signature: null,
+            createdAt: '2026-03-15T00:00:00.000Z'
+          }]
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
           attestations: [{
             attestationId: 'attestation-1',
             marketId: 'market-1',
@@ -1059,14 +1100,16 @@ describe('SpeculiteClobClient', () => {
 
     await client.resolveV2Market('market-1');
     await client.getV2MarketEvidence('market-1');
+    await client.getV2MarketPlannerRuns('market-1');
     await client.getV2MarketAttestations('market-1');
     await client.createV2MarketChallenge('market-1', { reason: 'Need review' });
     await client.getV2MarketChallenges('market-1');
 
     expect((fetchMock.mock.calls[0] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/resolve');
     expect((fetchMock.mock.calls[1] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/evidence');
-    expect((fetchMock.mock.calls[2] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/attestations');
-    expect((fetchMock.mock.calls[3] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
+    expect((fetchMock.mock.calls[2] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/planner-runs');
+    expect((fetchMock.mock.calls[3] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/attestations');
     expect((fetchMock.mock.calls[4] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
+    expect((fetchMock.mock.calls[5] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
   });
 });

@@ -7,6 +7,7 @@ import type {
   V2MarketPlanRequest,
   V2MarketPlanResponse,
   V2MarketResponse,
+  V2PlannerRunsResponse,
   V2ResolutionResponse
 } from '../types.js';
 import { LifecycleClient } from './lifecycleClient.js';
@@ -38,6 +39,10 @@ export class V2Client extends LifecycleClient {
 
   async getV2MarketAttestations(marketId: string): Promise<V2AttestationsResponse> {
     return this.request('GET', `/api/v2/markets/${marketId.trim()}/attestations`);
+  }
+
+  async getV2MarketPlannerRuns(marketId: string): Promise<V2PlannerRunsResponse> {
+    return this.request('GET', `/api/v2/markets/${marketId.trim()}/planner-runs`);
   }
 
   async createV2MarketChallenge(
