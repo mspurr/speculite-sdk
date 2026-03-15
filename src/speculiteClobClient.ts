@@ -1,4 +1,4 @@
-import { LifecycleClient } from './client/lifecycleClient.js';
+import { V2Client } from './client/v2Client.js';
 
 export * from './types.js';
 export { SpeculiteApiError } from './errors.js';
@@ -14,4 +14,4 @@ export { SpeculiteApiError } from './errors.js';
  * The class intentionally has no extra logic; behavior is implemented
  * in the layered client modules for easier maintenance.
  */
-export class SpeculiteClobClient extends LifecycleClient {}
+export class SpeculiteClobClient extends V2Client {}

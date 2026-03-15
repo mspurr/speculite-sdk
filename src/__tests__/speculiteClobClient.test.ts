@@ -891,4 +891,147 @@ describe('SpeculiteClobClient', () => {
       chain: null
     });
   });
+
+  it('supports v2 market planning and creation endpoints', async () => {
+    const fetchMock = jest.fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          plan: {
+            decision: 'READY',
+            canonicalQuestion: 'Will BTC be above $120000?',
+            plannerVersion: 'v2-core-0.1.0',
+            marketKind: 'OBJECTIVE_PRICE',
+            marketStatus: 'READY',
+            toolCatalogVersion: '2026-03-15.v1',
+            toolCatalogHash: 'catalog-hash',
+            resolutionSpec: null,
+            resolutionSpecHash: 'spec-hash',
+            rejectionReason: null
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          market: {
+            marketId: 'market-1',
+            question: 'Will BTC be above $120000?',
+            canonicalQuestion: 'Will BTC be above $120000?',
+            expirationTimestamp: '2026-12-31T00:00:00.000Z',
+            marketKind: 'OBJECTIVE_PRICE',
+            status: 'READY',
+            plannerDecision: 'READY',
+            rejectionReason: null,
+            toolCatalogVersion: '2026-03-15.v1',
+            toolCatalogHash: 'catalog-hash',
+            resolutionSpecHash: 'spec-hash',
+            createdAt: '2026-03-15T00:00:00.000Z',
+            updatedAt: '2026-03-15T00:00:00.000Z',
+            resolutionSpec: null,
+            latestRun: null,
+            challenges: []
+          }
+        })
+      );
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      undefined,
+      0,
+      undefined,
+      { fetch: fetchMock as unknown as typeof fetch }
+    );
+
+    const request = {
+      question: 'Will BTC be above $120000?',
+      expirationTimestamp: '2026-12-31T00:00:00.000Z',
+      marketContext: {
+        assetSymbol: 'BTC',
+        comparison: 'above' as const,
+        strikePrice: '120000'
+      }
+    };
+
+    const plan = await client.planV2Market(request);
+    const created = await client.createV2Market(request);
+
+    expect(plan.plan.decision).toBe('READY');
+    expect(created.market.marketId).toBe('market-1');
+
+    const [planUrl, planInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(planUrl).toBe('https://api.speculite.com/api/v2/markets/plan');
+    expect(JSON.parse(planInit.body as string)).toEqual(request);
+
+    const [createUrl] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(createUrl).toBe('https://api.speculite.com/api/v2/markets');
+  });
+
+  it('supports v2 resolution, evidence, and challenge endpoints', async () => {
+    const fetchMock = jest.fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          run: {
+            runId: 'run-1',
+            marketId: 'market-1',
+            status: 'PROPOSED',
+            proposedOutcome: 'YES',
+            rationale: 'Observed price above strike.',
+            createdAt: '2026-03-15T00:00:00.000Z',
+            updatedAt: '2026-03-15T00:00:01.000Z',
+            completedAt: '2026-03-15T00:00:01.000Z'
+          },
+          evidence: []
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          evidence: []
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          challenge: {
+            challengeId: 'challenge-1',
+            marketId: 'market-1',
+            status: 'OPEN',
+            reason: 'Need review',
+            details: null,
+            challengerId: null,
+            createdAt: '2026-03-15T00:00:02.000Z'
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          challenges: []
+        })
+      );
+
+    const client = new SpeculiteClobClient(
+      'https://api.speculite.com',
+      10143,
+      undefined,
+      undefined,
+      0,
+      undefined,
+      { fetch: fetchMock as unknown as typeof fetch }
+    );
+
+    await client.resolveV2Market('market-1');
+    await client.getV2MarketEvidence('market-1');
+    await client.createV2MarketChallenge('market-1', { reason: 'Need review' });
+    await client.getV2MarketChallenges('market-1');
+
+    expect((fetchMock.mock.calls[0] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/resolve');
+    expect((fetchMock.mock.calls[1] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/evidence');
+    expect((fetchMock.mock.calls[2] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
+    expect((fetchMock.mock.calls[3] as [string])[0]).toBe('https://api.speculite.com/api/v2/markets/market-1/challenges');
+  });
 });

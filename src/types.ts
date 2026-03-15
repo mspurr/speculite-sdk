@@ -306,6 +306,170 @@ export interface DeveloperLifecycleEventResponse {
   };
 }
 
+/** ---------- V2 AI Resolution Types ---------- */
+export interface V2MarketContext {
+  categoryHint?: 'OBJECTIVE_PRICE' | 'STRUCTURED_EVENT';
+  assetSymbol?: string | null;
+  comparison?: 'above' | 'below' | null;
+  strikePrice?: number | string | null;
+  pythFeedId?: string | null;
+  primarySourceUrl?: string | null;
+  yesEvidencePhrases?: string[] | null;
+  noEvidencePhrases?: string[] | null;
+  dataSourceKey?: string | null;
+  sourcePath?: string | null;
+  expectedValue?: string | number | boolean | null;
+}
+
+export interface V2MarketPlanRequest {
+  question: string;
+  expirationTimestamp?: string | null;
+  marketContext?: V2MarketContext | null;
+}
+
+export interface ResolutionSpec {
+  specVersion: string;
+  plannerVersion: string;
+  marketKind: 'OBJECTIVE_PRICE' | 'STRUCTURED_EVENT';
+  outcomeType: 'BINARY';
+  canonicalQuestion: string;
+  expirationTimestamp: string | null;
+  toolCatalogVersion: string;
+  toolCatalogHash: string;
+  steps: Array<{
+    toolKey: string;
+    adapterName: string;
+    adapterVersion: string;
+    sourceKind: 'STRUCTURED_API' | 'DOCUMENT_PAGE' | 'PRICE_FEED';
+    params: Record<string, unknown>;
+  }>;
+  decisionRule:
+    | {
+        kind: 'price_threshold';
+        comparison: 'above' | 'below';
+        strikePrice: string;
+        assetSymbol: string;
+        pythFeedId: string;
+      }
+    | {
+        kind: 'document_phrase_match';
+        sourceUrl: string;
+        yesEvidencePhrases: string[];
+        noEvidencePhrases: string[];
+      }
+    | {
+        kind: 'structured_json_value';
+        sourceUrl: string;
+        jsonPath: string;
+        expectedValue: string | number | boolean;
+      };
+}
+
+export interface V2MarketPlanResult {
+  decision: 'READY' | 'REJECTED';
+  canonicalQuestion: string;
+  plannerVersion: string;
+  marketKind: 'OBJECTIVE_PRICE' | 'STRUCTURED_EVENT' | null;
+  marketStatus: string;
+  toolCatalogVersion: string;
+  toolCatalogHash: string;
+  resolutionSpec: ResolutionSpec | null;
+  resolutionSpecHash: string | null;
+  rejectionReason: string | null;
+}
+
+export interface V2Market {
+  marketId: string;
+  question: string;
+  canonicalQuestion: string;
+  expirationTimestamp: string | null;
+  marketKind: 'OBJECTIVE_PRICE' | 'STRUCTURED_EVENT' | null;
+  status: string;
+  plannerDecision: 'READY' | 'REJECTED';
+  rejectionReason: string | null;
+  toolCatalogVersion: string;
+  toolCatalogHash: string;
+  resolutionSpecHash: string | null;
+  createdAt: string;
+  updatedAt: string;
+  resolutionSpec: ResolutionSpec | null;
+  latestRun: ResolutionRun | null;
+  challenges: ChallengeRecord[];
+}
+
+export interface ResolutionRun {
+  runId: string;
+  marketId: string;
+  status: string;
+  proposedOutcome: 'YES' | 'NO' | null;
+  rationale: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+}
+
+export interface EvidenceItem {
+  evidenceId: string;
+  marketId: string;
+  runId: string;
+  toolKey: string;
+  adapterName: string;
+  adapterVersion: string;
+  sourceUrl: string | null;
+  retrievalTimestamp: string;
+  contentHash: string;
+  normalizedOutput: Record<string, unknown>;
+  rawArtifact: unknown;
+  createdAt: string;
+}
+
+export interface ChallengeRecord {
+  challengeId: string;
+  marketId: string;
+  status: 'OPEN';
+  reason: string;
+  details: string | null;
+  challengerId: string | null;
+  createdAt: string;
+}
+
+export interface V2MarketPlanResponse {
+  success: boolean;
+  plan: V2MarketPlanResult;
+}
+
+export interface V2MarketResponse {
+  success: boolean;
+  market: V2Market;
+}
+
+export interface V2ResolutionResponse {
+  success: boolean;
+  run: ResolutionRun;
+  evidence: EvidenceItem[];
+}
+
+export interface V2EvidenceResponse {
+  success: boolean;
+  evidence: EvidenceItem[];
+}
+
+export interface V2ChallengeCreateRequest {
+  reason: string;
+  details?: string | null;
+  challengerId?: string | null;
+}
+
+export interface V2ChallengeResponse {
+  success: boolean;
+  challenge: ChallengeRecord;
+}
+
+export interface V2ChallengesResponse {
+  success: boolean;
+  challenges: ChallengeRecord[];
+}
+
 /** ---------- Signing and Lifecycle Transaction Types ---------- */
 /** Raw order payload shape expected by `/api/developer/orders`. */
 export interface DeveloperOrderRequest {
