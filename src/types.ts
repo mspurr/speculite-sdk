@@ -331,6 +331,7 @@ export interface V2MarketPlanRequest {
 
 export interface V2MarketCreateRequest extends V2MarketPlanRequest {
   confirmedResolutionSpecHash: string;
+  creatorAddress?: string | null;
 }
 
 export interface ResolutionSpec {
@@ -423,6 +424,12 @@ export interface V2Market {
   toolCatalogVersion: string;
   toolCatalogHash: string;
   resolutionSpecHash: string | null;
+  creatorAddress: string | null;
+  factoryAddress: string | null;
+  onchainMarketId: string | null;
+  marketAddress: string | null;
+  deploymentTxHash: string | null;
+  deployedAt: string | null;
   createdAt: string;
   updatedAt: string;
   resolutionSpec: ResolutionSpec | null;

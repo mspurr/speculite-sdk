@@ -31,6 +31,10 @@ export class V2Client extends LifecycleClient {
     return this.request('GET', `/api/v2/markets/${marketId.trim()}`);
   }
 
+  async deployV2Market(marketId: string): Promise<V2MarketResponse> {
+    return this.request('POST', `/api/v2/markets/${marketId.trim()}/deploy`);
+  }
+
   async resolveV2Market(marketId: string): Promise<V2ResolutionResponse> {
     return this.request('POST', `/api/v2/markets/${marketId.trim()}/resolve`);
   }
