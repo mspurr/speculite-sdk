@@ -5,6 +5,7 @@ import type {
   V2ChallengeResponse,
   V2ChallengesResponse,
   V2EvidenceResponse,
+  V2MarketCreateRequest,
   V2MarketPlanRequest,
   V2MarketPlanResponse,
   V2MarketResponse,
@@ -20,7 +21,7 @@ export class V2Client extends LifecycleClient {
     });
   }
 
-  async createV2Market(payload: V2MarketPlanRequest): Promise<V2MarketResponse> {
+  async createV2Market(payload: V2MarketCreateRequest): Promise<V2MarketResponse> {
     return this.request('POST', '/api/v2/markets', {
       body: payload
     });

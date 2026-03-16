@@ -319,6 +319,8 @@ export interface V2MarketContext {
   dataSourceKey?: string | null;
   sourcePath?: string | null;
   expectedValue?: string | number | boolean | null;
+  sourceUrls?: string[] | null;
+  sourceSelectionPolicy?: 'PRIMARY_ONLY' | 'PRIMARY_THEN_FALLBACK' | 'CONSENSUS' | null;
 }
 
 export interface V2MarketPlanRequest {
@@ -327,11 +329,16 @@ export interface V2MarketPlanRequest {
   marketContext?: V2MarketContext | null;
 }
 
+export interface V2MarketCreateRequest extends V2MarketPlanRequest {
+  confirmedResolutionSpecHash: string;
+}
+
 export interface ResolutionSpec {
   specVersion: string;
   plannerVersion: string;
   marketKind: 'OBJECTIVE_PRICE' | 'STRUCTURED_EVENT';
   outcomeType: 'BINARY';
+  finalityMode: 'IMMEDIATE_FINAL';
   canonicalQuestion: string;
   expirationTimestamp: string | null;
   toolCatalogVersion: string;
@@ -353,20 +360,41 @@ export interface ResolutionSpec {
       }
     | {
         kind: 'document_phrase_match';
-        sourceUrl: string;
+        sourceUrls: string[];
+        sourceSelectionPolicy: 'PRIMARY_ONLY' | 'PRIMARY_THEN_FALLBACK' | 'CONSENSUS';
         yesEvidencePhrases: string[];
         noEvidencePhrases: string[];
       }
     | {
         kind: 'structured_json_value';
-        sourceUrl: string;
+        sourceUrls: string[];
+        sourceSelectionPolicy: 'PRIMARY_ONLY' | 'PRIMARY_THEN_FALLBACK' | 'CONSENSUS';
         jsonPath: string;
         expectedValue: string | number | boolean;
       };
 }
 
+export interface V2SourceReference {
+  sourceUrl: string;
+  toolKey: string;
+  sourceKind: 'STRUCTURED_API' | 'DOCUMENT_PAGE' | 'PRICE_FEED';
+  selectionRole: 'PRIMARY' | 'FALLBACK';
+  priority: number;
+}
+
+export interface V2CreatorResolutionRules {
+  title: string;
+  canonicalQuestion: string;
+  finalityMode: 'IMMEDIATE_FINAL';
+  sources: V2SourceReference[];
+  sourceSelectionPolicy: 'PRIMARY_ONLY' | 'PRIMARY_THEN_FALLBACK' | 'CONSENSUS';
+  resolutionSummary: string;
+  invalidIf: string[];
+}
+
 export interface V2MarketPlanResult {
   decision: 'READY' | 'REJECTED';
+  title: string;
   canonicalQuestion: string;
   plannerVersion: string;
   plannerRuntimeKind: 'LOCAL_RULES' | 'HTTP_LLM';
@@ -377,6 +405,8 @@ export interface V2MarketPlanResult {
   toolCatalogHash: string;
   resolutionSpec: ResolutionSpec | null;
   resolutionSpecHash: string | null;
+  creatorConfirmationRequired: boolean;
+  creatorRules: V2CreatorResolutionRules | null;
   rejectionReason: string | null;
   plannerAttestation: PlannerRunRecord;
 }

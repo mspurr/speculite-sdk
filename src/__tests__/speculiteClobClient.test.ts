@@ -899,6 +899,7 @@ describe('SpeculiteClobClient', () => {
           success: true,
           plan: {
             decision: 'READY',
+            title: 'Will BTC be above $120000?',
             canonicalQuestion: 'Will BTC be above $120000?',
             plannerVersion: 'v2-core-0.1.0',
             plannerRuntimeKind: 'LOCAL_RULES',
@@ -909,6 +910,16 @@ describe('SpeculiteClobClient', () => {
             toolCatalogHash: 'catalog-hash',
             resolutionSpec: null,
             resolutionSpecHash: 'spec-hash',
+            creatorConfirmationRequired: true,
+            creatorRules: {
+              title: 'Will BTC be above $120000?',
+              canonicalQuestion: 'Will BTC be above $120000?',
+              finalityMode: 'IMMEDIATE_FINAL',
+              sources: [],
+              sourceSelectionPolicy: 'PRIMARY_ONLY',
+              resolutionSummary: 'summary',
+              invalidIf: []
+            },
             rejectionReason: null,
             plannerAttestation: {
               plannerRunId: 'planner-run-1',
@@ -981,17 +992,22 @@ describe('SpeculiteClobClient', () => {
     };
 
     const plan = await client.planV2Market(request);
-    const created = await client.createV2Market(request);
+    const created = await client.createV2Market({
+      ...request,
+      confirmedResolutionSpecHash: 'spec-hash'
+    });
 
     expect(plan.plan.decision).toBe('READY');
+    expect(plan.plan.creatorConfirmationRequired).toBe(true);
     expect(created.market.marketId).toBe('market-1');
 
     const [planUrl, planInit] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(planUrl).toBe('https://api.speculite.com/api/v2/markets/plan');
     expect(JSON.parse(planInit.body as string)).toEqual(request);
 
-    const [createUrl] = fetchMock.mock.calls[1] as [string, RequestInit];
+    const [createUrl, createInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(createUrl).toBe('https://api.speculite.com/api/v2/markets');
+    expect(JSON.parse(createInit.body as string).confirmedResolutionSpecHash).toBe('spec-hash');
   });
 
   it('supports v2 resolution, evidence, and challenge endpoints', async () => {
