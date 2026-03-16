@@ -1,4 +1,5 @@
 import type {
+  V2AnchorBundleResponse,
   V2AttestationsResponse,
   V2ChallengeCreateRequest,
   V2ChallengeResponse,
@@ -39,6 +40,10 @@ export class V2Client extends LifecycleClient {
 
   async getV2MarketAttestations(marketId: string): Promise<V2AttestationsResponse> {
     return this.request('GET', `/api/v2/markets/${marketId.trim()}/attestations`);
+  }
+
+  async getV2MarketAnchorBundle(marketId: string): Promise<V2AnchorBundleResponse> {
+    return this.request('GET', `/api/v2/markets/${marketId.trim()}/anchor-bundle`);
   }
 
   async getV2MarketPlannerRuns(marketId: string): Promise<V2PlannerRunsResponse> {

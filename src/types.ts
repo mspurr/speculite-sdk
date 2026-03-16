@@ -429,7 +429,7 @@ export interface RunAttestationRecord {
   attestationId: string;
   marketId: string;
   runId: string;
-  runtimeKind: 'LOCAL_HASHED';
+  runtimeKind: 'LOCAL_HASHED' | 'HTTP_EXECUTOR';
   runtimeVersion: string;
   inputHash: string;
   outputHash: string;
@@ -511,6 +511,81 @@ export interface V2AttestationsResponse {
 export interface V2PlannerRunsResponse {
   success: boolean;
   plannerRuns: PlannerRunRecord[];
+}
+
+export interface MarketAnchorEnvelope {
+  chainVersion: string;
+  envelopeType: 'MARKET_ROOT';
+  marketId: string;
+  canonicalQuestionHash: string;
+  resolutionSpecHash: string | null;
+  toolCatalogVersion: string;
+  toolCatalogHash: string;
+  createdAt: string;
+  envelopeHash: string;
+}
+
+export interface PlannerAnchorEnvelope {
+  chainVersion: string;
+  envelopeType: 'PLANNER_RUN';
+  marketId: string;
+  plannerRunId: string;
+  previousEnvelopeHash: string | null;
+  marketEnvelopeHash: string;
+  runtimeKind: 'LOCAL_RULES' | 'HTTP_LLM';
+  runtimeVersion: string;
+  inputHash: string;
+  outputHash: string;
+  validatedPlanHash: string | null;
+  attestationPayloadHash: string;
+  signature: string | null;
+  createdAt: string;
+  envelopeHash: string;
+}
+
+export interface ResolutionAnchorEnvelope {
+  chainVersion: string;
+  envelopeType: 'RESOLUTION_RUN';
+  marketId: string;
+  runId: string;
+  attestationId: string;
+  previousEnvelopeHash: string | null;
+  marketEnvelopeHash: string;
+  plannerEnvelopeHash: string | null;
+  runtimeKind: 'LOCAL_HASHED' | 'HTTP_EXECUTOR';
+  runtimeVersion: string;
+  inputHash: string;
+  outputHash: string;
+  evidenceBundleHash: string;
+  proposalHash: string;
+  attestationPayloadHash: string;
+  signature: string | null;
+  createdAt: string;
+  envelopeHash: string;
+}
+
+export interface V2AnchorBundle {
+  chainVersion: string;
+  marketId: string;
+  marketEnvelope: MarketAnchorEnvelope;
+  plannerEnvelopes: PlannerAnchorEnvelope[];
+  resolutionEnvelopes: ResolutionAnchorEnvelope[];
+  latestPlannerEnvelopeHash: string | null;
+  latestResolutionEnvelopeHash: string | null;
+  chainHeadHash: string;
+  anchorBundleHash: string;
+  onchainAnchorPayload: {
+    marketEnvelopeHash: string;
+    plannerEnvelopeHash: string | null;
+    resolutionEnvelopeHash: string | null;
+    chainHeadHash: string;
+    anchorBundleHash: string;
+  };
+}
+
+export interface V2AnchorBundleResponse {
+  success: boolean;
+  anchorBundle: V2AnchorBundle;
 }
 
 /** ---------- Signing and Lifecycle Transaction Types ---------- */
