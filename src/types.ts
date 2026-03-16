@@ -430,6 +430,11 @@ export interface V2Market {
   marketAddress: string | null;
   deploymentTxHash: string | null;
   deployedAt: string | null;
+  resolutionTxHash: string | null;
+  resolvedOutcome: 'YES' | 'NO' | null;
+  resolutionChainHeadHash: string | null;
+  anchorBundleHash: string | null;
+  finalizedAt: string | null;
   createdAt: string;
   updatedAt: string;
   resolutionSpec: ResolutionSpec | null;
@@ -517,6 +522,16 @@ export interface V2ResolutionResponse {
   run: ResolutionRun;
   evidence: EvidenceItem[];
   attestation: RunAttestationRecord;
+  anchorBundle: V2AnchorBundle | null;
+  onchainResolution: {
+    marketAddress: string | null;
+    resolutionTxHash: string | null;
+    resolvedOutcome: 'YES' | 'NO' | null;
+    resolutionChainHeadHash: string | null;
+    anchorBundleHash: string | null;
+    finalizedAt: string | null;
+  } | null;
+  market: V2Market | null;
 }
 
 export interface V2EvidenceResponse {
